@@ -1,6 +1,11 @@
 # 实现评估指标
 import evaluate
 
+
+def compute_metrics():
+    return
+
+
 metrics_list = evaluate.list_evaluation_modules()
 print("指标的总数: ", len(metrics_list))
 # print("所有的指标: ", metrics_list)
@@ -11,6 +16,7 @@ print("指标的总数: ", len(metrics_list))
 
 # 加载 BLEU 指标
 bleu = evaluate.load("bleu")
+
 
 predictions = ["this is a test", "another test"]  # 预测列表 str
 references = [
