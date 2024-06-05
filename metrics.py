@@ -12,6 +12,7 @@ print("指标的总数: ", len(metrics_list))
 # 加载 BLEU 指标
 bleu = evaluate.load("bleu")
 
+
 predictions = ["this is a test", "another test"]  # 预测列表 str
 references = [
     ["this is a test"],
