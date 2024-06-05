@@ -1,6 +1,11 @@
 # 实现评估指标
 import evaluate
 
+
+def compute_metrics():
+    return
+
+
 metrics_list = evaluate.list_evaluation_modules()
 print("指标的总数: ", len(metrics_list))
 # print("所有的指标: ", metrics_list)

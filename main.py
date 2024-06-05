@@ -18,6 +18,7 @@ from transformers import (
 )
 
 from data_process import DataProcess
+from metrics import compute_metrics
 from model import ModelConfig
 from utils import get_logger
 
