@@ -1,1 +1,1 @@
-from model1 import ModelConfig
+from .template import ConfigTemplate
