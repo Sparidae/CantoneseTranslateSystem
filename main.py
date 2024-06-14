@@ -19,7 +19,7 @@ from transformers import (
 
 from data_process import DataProcess
 from metrics import compute_metrics
-from model import ModelConfig
+from model import ConfigTemplate
 from utils import get_logger
 
 logger = get_logger("Main")
@@ -50,6 +50,7 @@ if __name__ == "__main__":
     data = DataProcess()
     dataset = data.get_dataset(ratio=0.2)
     print(dataset)
+    print(dataset["train"][1])
 
     # 创建模型配置
     # config = ModelConfig()
