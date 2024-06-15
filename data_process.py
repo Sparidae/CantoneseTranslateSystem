@@ -10,7 +10,7 @@ from datasets import concatenate_datasets, load_dataset, load_from_disk
 from tokenizers import Tokenizer, models, normalizers, trainers
 from tokenizers.models import WordLevel, WordPiece
 from tokenizers.pre_tokenizers import PreTokenizer, WhitespaceSplit
-from transformers import PreTrainedTokenizerFast
+from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from utils import get_logger
 
@@ -18,12 +18,17 @@ DATASET_PATH = "./dataset/full"
 DATASET_CACHE = "./dataset/hf_dataset"
 TOKENIZER_PATH = "./dataset/tokenizer.json"
 
+os.makedirs(DATASET_PATH, exist_ok=True)
+os.makedirs(DATASET_CACHE, exist_ok=True)
+
 # 记录日志
 logger = get_logger("DataProcess")
 
 
 class DataProcess:
-    def __init__(self) -> None:
+    def __init__(self, tokenizer=None) -> None:
+        # 提供的tokenizer最好是fast实现
+
         # 1. 加载处理好的全连接的数据集
         if len(os.listdir(DATASET_PATH)) == 0:
             self.dataset = self.__preprocess_full_dataset()
@@ -33,7 +38,8 @@ class DataProcess:
 
         # 2. 使用连接起来的数据集训练tokenizer，(如果存在文件就读取,)
         logger.info("get tokenizer")
-        tokenizer = self.get_tokenizer(self.dataset)
+        if tokenizer is None:  # 如果没有提供tokenizer 就自行训练tokenizer
+            tokenizer = train_tokenizer(self.dataset, retrain=True)
 
         def encode(batch):
             # tokenizer 接受str或者str列表
@@ -62,52 +68,6 @@ class DataProcess:
         #     columns=["input_ids", "token_type_ids", "attention_mask", "label"],
         # )
         logger.info("finish data processing")
-
-    def get_tokenizer(self, dataset, retrain=False):
-        # 训练得到tokenizer 的函数
-        if retrain or not osp.exists(TOKENIZER_PATH):
-            # 创建分词器模型，使用WordLevel进行分词中文词汇
-            tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
-
-            # 创建 Normalizer
-            tokenizer.normalizer = normalizers.NFKC()  # 转换兼容字符
-
-            # 定义 PreTokenizer
-            # 中文直接在字符意义上处理即可
-            tokenizer.pre_tokenizer = WhitespaceSplit()  # 之前给语料添加了空格
-            # tokenizer.post_processor = None # TODO 根据模型给出处理模板 比如添加特殊tokne
-
-            # 定义训练器
-            trainer = trainers.WordLevelTrainer(
-                vocab_size=30000,
-                min_frequency=1,
-                show_progress=True,
-                # TODO 根据模型需要改动合适的特殊token
-                special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"],
-            )
-
-            def batch_iterator(batch_size=1000):
-                for i in range(0, len(dataset), batch_size):
-                    batch_text = []
-                    batch_text.extend(dataset[i : i + batch_size]["yue"])
-                    batch_text.extend(dataset[i : i + batch_size]["zh"])
-                    yield batch_text
-
-            # 训练分词器
-            tokenizer.train_from_iterator(
-                batch_iterator(), trainer, length=len(dataset)
-            )
-
-            # 设置分词器填充 和截断
-            tokenizer.enable_padding(pad_id=tokenizer.token_to_id("[PAD]"))
-            tokenizer.enable_truncation(max_length=512)
-
-            # 保存到文件
-            tokenizer.save(TOKENIZER_PATH)
-
-        # 从文件加载tokenizer
-        tokenizer = PreTrainedTokenizerFast(tokenizer_file=TOKENIZER_PATH)
-        return tokenizer
 
     def get_dataset(self, ratio=0.2):
         # 分割数据集并返回
@@ -166,6 +126,56 @@ class DataProcess:
         full_dataset = full_dataset.map(add_space)
         full_dataset.save_to_disk(DATASET_PATH)
         return full_dataset
+
+
+def train_tokenizer(dataset, retrain=False):
+    # 训练得到tokenizer 的函数
+    # 不用tokenizer
+    if retrain or not osp.exists(TOKENIZER_PATH):
+        logger.info("retrain tokenizer")
+        # 创建分词器模型，使用WordLevel进行分词中文词汇
+        tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
+
+        # 创建 Normalizer
+        tokenizer.normalizer = normalizers.NFKC()  # 转换兼容字符
+
+        # 定义 PreTokenizer
+        # 中文直接在字符意义上处理即可
+        tokenizer.pre_tokenizer = WhitespaceSplit()  # 之前给语料添加了空格
+        # tokenizer.post_processor = None # TODO 根据模型给出处理模板 比如添加特殊tokne
+
+        # 定义训练器
+        trainer = trainers.WordLevelTrainer(
+            vocab_size=30000,
+            min_frequency=1,
+            show_progress=True,
+            # TODO 根据模型需要改动合适的特殊token
+            special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"],
+        )
+
+        def batch_iterator(batch_size=1000):
+            for i in range(0, len(dataset), batch_size):
+                batch_text = []
+                batch_text.extend(dataset[i : i + batch_size]["yue"])
+                batch_text.extend(dataset[i : i + batch_size]["zh"])
+                yield batch_text
+
+        # 训练分词器
+
+        tokenizer.train_from_iterator(batch_iterator(), trainer, length=len(dataset))
+
+        # 设置分词器填充 和截断
+        tokenizer.enable_padding(pad_id=tokenizer.token_to_id("[PAD]"))
+        tokenizer.enable_truncation(max_length=512)
+
+        # 保存到文件
+        tokenizer.save(TOKENIZER_PATH)
+
+    # 从文件加载tokenizer
+    logger.info("load tokenizer from file")
+    tokenizer = PreTrainedTokenizerFast(tokenizer_file=TOKENIZER_PATH)
+
+    return tokenizer
 
 
 if __name__ == "__main__":
