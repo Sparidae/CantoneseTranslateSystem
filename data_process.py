@@ -6,10 +6,16 @@ from pprint import pp
 
 import datasets
 import opencc
+import tokenizers
 from datasets import concatenate_datasets, load_dataset, load_from_disk
-from tokenizers import Tokenizer, models, normalizers, trainers
-from tokenizers.models import WordLevel, WordPiece
-from tokenizers.pre_tokenizers import PreTokenizer, WhitespaceSplit
+from tokenizers import (
+    Tokenizer,
+    models,
+    normalizers,
+    pre_tokenizers,
+    processors,
+    trainers,
+)
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from utils import get_logger
@@ -36,9 +42,20 @@ class DataProcess:
             logger.info("load full dataset from disk")
             self.dataset = load_from_disk(DATASET_PATH)
 
+        # test 最终可以注释掉的代码部分
+        self.dataset = self.__preprocess_full_dataset()
+        print(self.dataset["yue"][:2])
+        print(self.dataset["zh"][:2])
+
         # 2. 使用连接起来的数据集训练tokenizer，(如果存在文件就读取,)
         logger.info("get tokenizer")
         if tokenizer is None:  # 如果没有提供tokenizer 就自行训练tokenizer
+            # def add_space(example):  # FIXME 这个部分需要改进，
+            #     example["yue"] = " ".join(example["yue"])
+            #     example["zh"] = " ".join(example["zh"])
+            #     return example
+
+            # full_dataset = full_dataset.map(add_space)
             tokenizer = train_tokenizer(self.dataset, retrain=True)
 
         def encode(batch):
@@ -58,7 +75,7 @@ class DataProcess:
         # # https://huggingface.co/docs/datasets/process#format-transform
         self.dataset.set_transform(encode)  # 运行时调用，可以实现动态填充长度
 
-        # 测试
+        # TEST
         # pp(self.dataset[:2])
         # pp(self.dataset[:5])
 
@@ -118,39 +135,48 @@ class DataProcess:
         logger.info("concat all dataset and add space")
         full_dataset = concatenate_datasets([dataset1, dataset2])
 
-        def add_space(example):
-            example["yue"] = " ".join(example["yue"])
-            example["zh"] = " ".join(example["zh"])
-            return example
-
-        full_dataset = full_dataset.map(add_space)
+        # 保存为文件
         full_dataset.save_to_disk(DATASET_PATH)
         return full_dataset
 
 
-def train_tokenizer(dataset, retrain=False):
-    # 训练得到tokenizer 的函数
-    # 不用tokenizer
-    if retrain or not osp.exists(TOKENIZER_PATH):
+def train_tokenizer(dataset=None, retrain=False):
+    # 在自己的数据集上 训练得到tokenizer 的函数
+    # 这部分属于 LSTM 方法，也可以直接用bert的tokenizer，当前的tokenizer实现不是很完善
+
+    # 如果需要再训练或者不存在缓存的tokenizer，在这个条件下需要dataset存在
+    if (retrain or not osp.exists(TOKENIZER_PATH)) and dataset is not None:
         logger.info("retrain tokenizer")
         # 创建分词器模型，使用WordLevel进行分词中文词汇
-        tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
+        tokenizer = Tokenizer(models.WordPiece(unk_token="[UNK]"))
 
         # 创建 Normalizer
-        tokenizer.normalizer = normalizers.NFKC()  # 转换兼容字符
+        tokenizer.normalizer = normalizers.Sequence(
+            [
+                normalizers.NFKC(),
+                normalizers.Lowercase(),
+                normalizers.StripAccents(),
+            ]
+        )  # 转换兼容字符
 
         # 定义 PreTokenizer
         # 中文直接在字符意义上处理即可
-        tokenizer.pre_tokenizer = WhitespaceSplit()  # 之前给语料添加了空格
-        # tokenizer.post_processor = None # TODO 根据模型给出处理模板 比如添加特殊tokne
+        tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
+        # 之前给语料添加了空格
 
-        # 定义训练器
-        trainer = trainers.WordLevelTrainer(
-            vocab_size=30000,
+        # tokenizer.post_processor = processors.TemplateProcessing(
+        #     single="[CLS] $0 [SEP]",
+        #     # pair="[CLS] $A [SEP] $B:1 [SEP]:1",
+        #     special_tokens=[("[CLS]", 1), ("[SEP]", 0)],
+        # )  # TODO 根据模型给出处理模板 比如添加特殊token
+
+        trainer = trainers.WordPieceTrainer(
+            vocab_size=10000,
             min_frequency=1,
             show_progress=True,
-            # TODO 根据模型需要改动合适的特殊token
+            # FIXME cls 是bert的分词
             special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"],
+            # special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"]
         )
 
         def batch_iterator(batch_size=1000):
@@ -183,7 +209,13 @@ if __name__ == "__main__":
     dataset = data.get_dataset()
     print(dataset)
 
-    # sens =['','']
+    sens = ["杞人的朋友叹一口气"]
 
-    # tokenizer = Tokenizer.from_file(TOKENIZER_PATH)
+    tokenizer = PreTrainedTokenizerFast(tokenizer_file=TOKENIZER_PATH)
+    pp(sens)
+    pp(tokenizer(sens))
+    pp(len(tokenizer))
+    list(tokenizer.get_vocab().keys())
+    pp(tokenizer.encode(sens[0]))
+    pp(tokenizer.decode(tokenizer.encode(sens[0])))
     # pp(tokenizer.token_to_id("[PAD]"))
