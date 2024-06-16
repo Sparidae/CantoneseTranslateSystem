@@ -10,3 +10,4 @@ output/**
 !output/.gitkeep
 
 t5_tokenizer/
+api.json
