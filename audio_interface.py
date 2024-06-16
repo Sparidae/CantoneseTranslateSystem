@@ -1,4 +1,5 @@
 import os
+import json
 import random
 import numpy as np
 import soundfile as sf
@@ -205,9 +206,12 @@ def get_random_audio_file(folder_path, file_extension=".mp3"):
     return os.path.join(folder_path, random_audio_file)
 
 def speech2text(audio_path='dataset/yue/clips\common_voice_yue_38338687.mp3'):
-    app_id='6819e8d7'
-    api_key='43a8503a5ad194b80b6f2f94dbc3abbc'
-    api_secret ='ZDg4MDQ0Y2Q1YTE4YWYxMjM3NzVjODUx'
+    with open('api.json') as f:
+        api = json.load(f)
+    print(api)
+    app_id=api['app_id']
+    api_key=api['api_key']
+    api_secret =api['api_secret']
     audio_path = convert_mp3_to_wav(audio_path)
     audio_path = audio_sample(audio_path)
     recognizer = SpeechRecognizer(app_id, api_key, api_secret)
@@ -216,9 +220,7 @@ def speech2text(audio_path='dataset/yue/clips\common_voice_yue_38338687.mp3'):
 
 
 if __name__ == "__main__":
-    app_id='6819e8d7'
-    api_key='43a8503a5ad194b80b6f2f94dbc3abbc'
-    api_secret ='ZDg4MDQ0Y2Q1YTE4YWYxMjM3NzVjODUx'
+
     # 设定音频文件夹路径
     folder_path = 'dataset/yue/clips'
 

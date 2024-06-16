@@ -14,6 +14,14 @@ pip/conda安装以下库(我用pip报错，用conda可以):
 
 ffmpg：需要从官网(https://ffmpeg.org/)下载后添加到环境变量
 
+### 快速上手
+语音转文本需要用到科大讯飞提供的api，在官网(https://www.xfyun.cn/)中找到 语音识别->语音听写，创建一个应用，在应用的服务接口认证信息中有APPID，APISecret，APIKey。
+在主目录下创建api.json,内容为：
+{
+    "app_id":"你的appid",
+    "api_key":"你的apikey",
+    "api_secret":"你的apisecret"
+}
 
 ## 文件结构
 
