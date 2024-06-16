@@ -48,37 +48,50 @@ class DataProcess:
 
         # 2. 使用连接起来的数据集训练tokenizer，(如果存在文件就读取,)
         logger.info("get tokenizer")
-        if tokenizer is None:  # 如果没有提供tokenizer 就自行训练tokenizer
+        if tokenizer is None:
+            # 如果没有提供tokenizer 就自行训练tokenizer
             tokenizer = train_tokenizer(self.dataset, retrain=True)
 
-        def encode(batch):
-            # tokenizer 接受str或者str列表
-            # batch是数据字典，包括yue的n条数据组成的列表和zh的n条数据组成的列表
-            batch = tokenizer(
-                text=batch["yue"],
-                text_target=batch["zh"],
-                padding=True,  # 最长填充
-                truncation=True,  # 截断超过最长长度的
-                max_length=128,
-                return_attention_mask=True,
-                return_token_type_ids=False,
-                return_tensors="pt",
-            )
-            # ['input_ids', 'token_type_ids', 'attention_mask', 'labels']
-            return batch
+            # 下面这部分主要实现动态填充，也可以给trainer传递参数
+            def encode(batch):
+                # tokenizer 接受str或者str列表
+                # batch是数据字典，包括yue的n条数据组成的列表和zh的n条数据组成的列表
+                batch = tokenizer(
+                    text=batch["yue"],
+                    text_target=batch["zh"],
+                    padding=True,  # 最长填充
+                    truncation=True,  # 截断超过最长长度的
+                    max_length=128,
+                    return_attention_mask=True,
+                    return_token_type_ids=False,
+                    return_tensors="pt",
+                )
+                # ['input_ids', 'token_type_ids', 'attention_mask', 'labels']
+                return batch
 
-        # # https://huggingface.co/docs/datasets/process#format-transform
-        self.dataset.set_transform(encode)  # 运行时调用，可以实现动态填充长度
+            # # https://huggingface.co/docs/datasets/process#format-transform
+            self.dataset.set_transform(encode)  # 运行时调用，可以实现动态填充长度
+
+        else:
+            # 这里不实现动态填充，而是使用collator进行之后的填充对齐操作
+            def encode(examples):
+                # tokenizer 接受str或者str列表
+                # batch是数据字典，包括yue的n条数据组成的列表和zh的n条数据组成的列表
+                prefix = "翻译粤语为简体中文:"
+                batch = tokenizer(
+                    text=[prefix + e for e in examples["yue"]],
+                    text_target=examples["zh"],
+                    truncation=True,  # 截断超过最长长度的
+                    max_length=128,
+                )
+                # ['input_ids', 'token_type_ids', 'attention_mask', 'labels']
+                return batch
+
+            self.dataset = self.dataset.map(encode, batched=True)
 
         # TEST
         # pp(self.dataset[:2])
         # pp(self.dataset[:5])
-
-        # 3. 将对应列的格式更改为张量格式
-        # self.dataset.set_format(
-        #     type="torch",
-        #     columns=["input_ids", "token_type_ids", "attention_mask", "label"],
-        # )
         logger.info("finish data processing")
 
     def get_dataset(self, ratio=0.2):

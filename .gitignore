@@ -1,5 +1,10 @@
 .vscode/
 **/__pycache__/**
+
 dataset/**
 !dataset/.gitkeep
+
 test.ipynb
+
+output/** 
+!output/.gitkeep
