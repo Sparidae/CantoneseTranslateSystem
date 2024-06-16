@@ -78,8 +78,8 @@ compute_metric = get_compute_metric(tokenizer)
 # 训练参数
 # 训练参数
 logger.info("configure trainer")
-beam_config = GenerationConfig(  # FIXME 生成可能有问题，生成太短导致不匹配bleu
-    max_new_tokens=60,
+beam_config = GenerationConfig(  # 束搜索是因为翻译评估需要稳定的输出，采样具有随机性，每次的评估都不一样
+    max_new_tokens=60,  # TODO 匹配数据集的最大长度
     num_beams=3,
     early_stopping=True,
     bos_token_id=7,
@@ -91,16 +91,26 @@ top_config = GenerationConfig()
 args = Seq2SeqTrainingArguments(
     output_dir="./output",
     learning_rate=2e-5,
-    # num_train_epochs=3,
+    # num_train_epochs=3, # 默认3个
+    # 梯度累计和检查点优化策略
     per_device_train_batch_size=4,
     gradient_accumulation_steps=8,  # 进行一次更新的梯度累计步数 BS*GA=32，显示的也是这个
     gradient_checkpointing=True,
-    per_device_eval_batch_size=16,
+    # 评估优化
+    per_device_eval_batch_size=8,
+    eval_accumulation_steps=4,
+    # 日志
     logging_steps=8,
+    # 评估
     eval_strategy="steps",
-    eval_steps=64,  # 512
-    # save_strategy="epoch",
+    eval_steps=512,  # 512
+    # 保存
+    save_strategy="steps",
+    save_steps=512,
+    save_total_limit=1,  # 只保存最好的和最后的一个
+    load_best_model_at_end=True,
     metric_for_best_model="bleu-4",
+    # 生成
     predict_with_generate=True,
     generation_config=beam_config,
 )
@@ -116,6 +126,7 @@ trainer = Seq2SeqTrainer(
 
 logger.info("start training")
 trainer.train()
+
 
 # from peft import PeftModel
 
