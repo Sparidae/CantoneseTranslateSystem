@@ -6,18 +6,32 @@ from utils import get_logger
 
 logger = get_logger("metrics")
 
+# 加载 BLEU 指标
+logger.info("load metrics")
+
+bleu = evaluate.load("bleu")
+
 
 def get_compute_metric(tokenizer):
     def compute_metrics(eval_pred):
         pred, labels = eval_pred
+        pred = np.where(pred != -100, pred, tokenizer.pad_token_id)
         pred = tokenizer.batch_decode(pred, skip_special_tokens=True)
         labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
         labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
         # 默认为4gram bleu
-        bleu_score = bleu.compute(
-            predictions=pred, references=labels, tokenizer=tokenizer
+        # 使用统一的空格分词评价，使bleu分数具有可比性
+        bleu_2 = bleu.compute(
+            predictions=[" ".join(p) for p in pred],
+            references=[" ".join(p) for p in labels],
+            max_order=4,
         )
-        return {"bleu-4": bleu_score["bleu"]}
+        bleu_4 = bleu.compute(
+            predictions=[" ".join(p) for p in pred],
+            references=[" ".join(p) for p in labels],
+            max_order=4,
+        )
+        return {"bleu": bleu_4["bleu"]}
 
     return compute_metrics
 
@@ -28,11 +42,6 @@ def get_compute_metric(tokenizer):
 # for m in metrics_list:
 #     if "bleu" in m:
 #         print(m)
-
-
-# 加载 BLEU 指标
-logger.info("load metrics")
-bleu = evaluate.load("bleu")
 
 
 # TEST

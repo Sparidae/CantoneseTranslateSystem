@@ -48,7 +48,7 @@ if __name__ == "__main__":
     # 加载数据
     logger.info("Load Data")
     data = DataProcess()
-    dataset = data.get_dataset(ratio=0.2)
+    dataset = data.get_dataset(test_size=0.2)
     print(dataset)
     print(dataset["train"][1])
 
