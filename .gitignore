@@ -8,3 +8,5 @@ test.ipynb
 
 output/** 
 !output/.gitkeep
+
+t5_tokenizer/

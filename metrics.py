@@ -17,7 +17,7 @@ def get_compute_metric(tokenizer):
         bleu_score = bleu.compute(
             predictions=pred, references=labels, tokenizer=tokenizer
         )
-        return {"bleu-4": bleu_score}
+        return {"bleu-4": bleu_score["bleu"]}
 
     return compute_metrics
 
