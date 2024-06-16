@@ -43,8 +43,8 @@ class DataProcess:
 
         # test 最终可以注释掉的代码部分
         # self.dataset = self.__preprocess_full_dataset()
-        print(self.dataset["yue"][:2])
-        print(self.dataset["zh"][:2])
+        # print(self.dataset["yue"][:2])
+        # print(self.dataset["zh"][:2])
 
         # 2. 使用连接起来的数据集训练tokenizer，(如果存在文件就读取,)
         logger.info("get tokenizer")
@@ -94,9 +94,10 @@ class DataProcess:
         # pp(self.dataset[:5])
         logger.info("finish data processing")
 
-    def get_dataset(self, ratio=0.2):
+    def get_dataset(self, test_size=0.2):
         # 分割数据集并返回
-        return self.dataset.train_test_split(ratio)
+        # test_size 整数为测试集条数，小数为测试集比例
+        return self.dataset.train_test_split(test_size)
 
     def __preprocess_full_dataset(self):
         # 1. 下载在线数据集，存储在 DATASET_CACHE，或者从中加载
@@ -134,6 +135,10 @@ class DataProcess:
             return example
 
         dataset2 = dataset2.map(t2s)
+        # TODO 翻译
+        # 我的想法是单独写一个函数，现在这个数据集组成是yue标签和zh标签的字典，字典里面是数据列表
+        # 这个函数进行翻译，一行一对数据先存放到临时文件，如果翻译到一半用光了（报错就保存断点，换key
+        # 然后恢复执行能继续生成
 
         # 5. 将所有训练语料拼接起来作为一个数据集训练,并为数据集按字为单位添加空格分隔（方便tokenizer分字）
         logger.info("concat all dataset")
