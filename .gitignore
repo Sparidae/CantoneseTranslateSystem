@@ -4,7 +4,7 @@
 dataset/**
 !dataset/.gitkeep
 
-test.ipynb
+*.ipynb
 
 output/** 
 !output/.gitkeep

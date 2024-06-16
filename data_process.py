@@ -135,6 +135,10 @@ class DataProcess:
             return example
 
         dataset2 = dataset2.map(t2s)
+        # TODO 翻译
+        # 我的想法是单独写一个函数，现在这个数据集组成是yue标签和zh标签的字典，字典里面是数据列表
+        # 这个函数进行翻译，一行一对数据先存放到临时文件，如果翻译到一半用光了（报错就保存断点，换key
+        # 然后恢复执行能继续生成
 
         # 5. 将所有训练语料拼接起来作为一个数据集训练,并为数据集按字为单位添加空格分隔（方便tokenizer分字）
         logger.info("concat all dataset")
