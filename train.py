@@ -18,16 +18,17 @@ logger = get_logger("FineTune_Mengzi-T5")
 
 
 # 加载预训练的tokenizer
+logger.info("load t5 pretrained tokenizer")
 tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
-print(tokenizer)
+# print(tokenizer)
 
 
 # 测试tokenizer是否能正常使用
-result = tokenizer(
-    ["杞 人 的 朋 友 叹 了 一 口 气", "泥 水 佬 开 门 口 过 得 人 过 得 自 己"]
-)
+result = tokenizer(["杞人的朋友叹了一口气", "泥水佬开门口过得人过得自己"])
 print(result)
-result = tokenizer(
-    ["杞 人 的 朋 友 叹 了 一 口 气", "泥 水 佬 开 门 口 过 得 人 过 得 自 己"]
-)
-print(tokenizer)
+
+# 使用tokenizer处理数据
+data = DataProcess(tokenizer)
+
+dataset = data.get_dataset()
+print(dataset)

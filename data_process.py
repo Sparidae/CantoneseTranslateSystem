@@ -2,6 +2,7 @@
 import logging
 import os
 import os.path as osp
+import shutil
 from pprint import pp
 
 import datasets
@@ -21,11 +22,9 @@ from transformers import AutoTokenizer, PreTrainedTokenizerFast
 from utils import get_logger
 
 DATASET_PATH = "./dataset/full"
-DATASET_CACHE = "./dataset/hf_dataset"
 TOKENIZER_PATH = "./dataset/tokenizer.json"
 
 os.makedirs(DATASET_PATH, exist_ok=True)
-os.makedirs(DATASET_CACHE, exist_ok=True)
 
 # 记录日志
 logger = get_logger("DataProcess")
@@ -40,22 +39,16 @@ class DataProcess:
             self.dataset = self.__preprocess_full_dataset()
         else:
             logger.info("load full dataset from disk")
-            self.dataset = load_from_disk(DATASET_PATH)
+            self.dataset = load_from_disk(DATASET_PATH, keep_in_memory=True)
 
         # test 最终可以注释掉的代码部分
-        self.dataset = self.__preprocess_full_dataset()
+        # self.dataset = self.__preprocess_full_dataset()
         print(self.dataset["yue"][:2])
         print(self.dataset["zh"][:2])
 
         # 2. 使用连接起来的数据集训练tokenizer，(如果存在文件就读取,)
         logger.info("get tokenizer")
         if tokenizer is None:  # 如果没有提供tokenizer 就自行训练tokenizer
-            # def add_space(example):  # FIXME 这个部分需要改进，
-            #     example["yue"] = " ".join(example["yue"])
-            #     example["zh"] = " ".join(example["zh"])
-            #     return example
-
-            # full_dataset = full_dataset.map(add_space)
             tokenizer = train_tokenizer(self.dataset, retrain=True)
 
         def encode(batch):
@@ -66,7 +59,9 @@ class DataProcess:
                 text_target=batch["zh"],
                 padding=True,  # 最长填充
                 truncation=True,  # 截断超过最长长度的
-                max_length=512,
+                max_length=128,
+                return_attention_mask=True,
+                return_token_type_ids=False,
                 return_tensors="pt",
             )
             # ['input_ids', 'token_type_ids', 'attention_mask', 'labels']
@@ -93,18 +88,14 @@ class DataProcess:
     def __preprocess_full_dataset(self):
         # 1. 下载在线数据集，存储在 DATASET_CACHE，或者从中加载
         logger.info("preprocess full dataset")
-        try:
-            dataset1 = load_from_disk(osp.join(DATASET_CACHE, "1"))
-            dataset2 = load_from_disk(osp.join(DATASET_CACHE, "2"))
-        except:  # noqa: E722
-            dataset1 = load_dataset(
-                "botisan-ai/cantonese-mandarin-translations",
-            )
-            dataset2 = load_dataset(
-                "raptorkwok/cantonese-traditional-chinese-parallel-corpus",
-            )
-            dataset1.save_to_disk(osp.join(DATASET_CACHE, "1"))
-            dataset2.save_to_disk(osp.join(DATASET_CACHE, "2"))
+        dataset1 = load_dataset(
+            "botisan-ai/cantonese-mandarin-translations",
+            keep_in_memory=True,
+        )
+        dataset2 = load_dataset(
+            "raptorkwok/cantonese-traditional-chinese-parallel-corpus",
+            keep_in_memory=True,
+        )
 
         # 2. 数据格式处理为yue zh的无嵌套，无划分的数据集
         logger.info("dataset flatten, concatenate")
@@ -132,10 +123,11 @@ class DataProcess:
         dataset2 = dataset2.map(t2s)
 
         # 5. 将所有训练语料拼接起来作为一个数据集训练,并为数据集按字为单位添加空格分隔（方便tokenizer分字）
-        logger.info("concat all dataset and add space")
+        logger.info("concat all dataset")
         full_dataset = concatenate_datasets([dataset1, dataset2])
 
         # 保存为文件
+        # shutil.rmtree(DATASET_PATH)
         full_dataset.save_to_disk(DATASET_PATH)
         return full_dataset
 
@@ -148,7 +140,7 @@ def train_tokenizer(dataset=None, retrain=False):
     if (retrain or not osp.exists(TOKENIZER_PATH)) and dataset is not None:
         logger.info("retrain tokenizer")
         # 创建分词器模型，使用WordLevel进行分词中文词汇
-        tokenizer = Tokenizer(models.WordPiece(unk_token="[UNK]"))
+        tokenizer = Tokenizer(models.WordLevel(unk_token="[UNK]"))
 
         # 创建 Normalizer
         tokenizer.normalizer = normalizers.Sequence(
@@ -161,7 +153,7 @@ def train_tokenizer(dataset=None, retrain=False):
 
         # 定义 PreTokenizer
         # 中文直接在字符意义上处理即可
-        tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
+        tokenizer.pre_tokenizer = pre_tokenizers.Split("", behavior="isolated")
         # 之前给语料添加了空格
 
         # tokenizer.post_processor = processors.TemplateProcessing(
@@ -170,7 +162,7 @@ def train_tokenizer(dataset=None, retrain=False):
         #     special_tokens=[("[CLS]", 1), ("[SEP]", 0)],
         # )  # TODO 根据模型给出处理模板 比如添加特殊token
 
-        trainer = trainers.WordPieceTrainer(
+        trainer = trainers.WordLevelTrainer(
             vocab_size=10000,
             min_frequency=1,
             show_progress=True,
@@ -208,14 +200,17 @@ if __name__ == "__main__":
     data = DataProcess()
     dataset = data.get_dataset()
     print(dataset)
+    pp(dataset["train"][:2])  # 展示文本数据处理后的结果
 
-    sens = ["杞人的朋友叹一口气"]
-
-    tokenizer = PreTrainedTokenizerFast(tokenizer_file=TOKENIZER_PATH)
-    pp(sens)
-    pp(tokenizer(sens))
-    pp(len(tokenizer))
-    list(tokenizer.get_vocab().keys())
-    pp(tokenizer.encode(sens[0]))
-    pp(tokenizer.decode(tokenizer.encode(sens[0])))
-    # pp(tokenizer.token_to_id("[PAD]"))
+    # sens = ["杞人嘅朋友嘆咗一口氣", "泥水佬開門口過得人過得自己"]
+    # tokenizer = PreTrainedTokenizerFast(tokenizer_file=TOKENIZER_PATH)
+    # # tokenizer = AutoTokenizer.from_pretrained("bert-base-chinese")
+    # # tokenizer.save_pretrained("./bert_tokenizer")
+    # pp(sens)
+    # pp(tokenizer(sens))
+    # pp(len(tokenizer))
+    # # list(tokenizer.get_vocab().keys())
+    # encoded = tokenizer.encode(sens[0])
+    # pp(encoded)
+    # pp(tokenizer.decode(encoded, skip_special_tokens=True))
+    # # pp(tokenizer.token_to_id("[PAD]"))
