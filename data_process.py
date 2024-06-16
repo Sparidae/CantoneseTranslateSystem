@@ -43,8 +43,8 @@ class DataProcess:
 
         # test 最终可以注释掉的代码部分
         # self.dataset = self.__preprocess_full_dataset()
-        print(self.dataset["yue"][:2])
-        print(self.dataset["zh"][:2])
+        # print(self.dataset["yue"][:2])
+        # print(self.dataset["zh"][:2])
 
         # 2. 使用连接起来的数据集训练tokenizer，(如果存在文件就读取,)
         logger.info("get tokenizer")
@@ -94,9 +94,10 @@ class DataProcess:
         # pp(self.dataset[:5])
         logger.info("finish data processing")
 
-    def get_dataset(self, ratio=0.2):
+    def get_dataset(self, test_size=0.2):
         # 分割数据集并返回
-        return self.dataset.train_test_split(ratio)
+        # test_size 整数为测试集条数，小数为测试集比例
+        return self.dataset.train_test_split(test_size)
 
     def __preprocess_full_dataset(self):
         # 1. 下载在线数据集，存储在 DATASET_CACHE，或者从中加载

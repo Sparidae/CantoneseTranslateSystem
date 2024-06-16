@@ -16,7 +16,7 @@ from transformers import (
 from data_process import DataProcess
 from metrics import get_compute_metric
 from model import ConfigTemplate
-from utils import get_logger
+from utils import count_trainable_parameters, get_logger
 
 logger = get_logger("FineTune_Mengzi-T5")
 
@@ -33,7 +33,7 @@ tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
 # 使用tokenizer处理数据
 logger.info("process data")
 data = DataProcess(tokenizer)
-dataset = data.get_dataset(0.05)
+dataset = data.get_dataset(8192)
 
 # FIXME 解决粤语未登录词的问题
 ## TEST
@@ -48,27 +48,35 @@ print(dataset)
 
 # 加载模型
 logger.info("load t5 pretrained model")
-model = AutoModelForSeq2SeqLM.from_pretrained("Langboat/mengzi-t5-base")
+model = AutoModelForSeq2SeqLM.from_pretrained(
+    "Langboat/mengzi-t5-base",
+    low_cpu_mem_usage=True,
+)
+count_trainable_parameters(model)  # 248M参数
 # print(model)
 
+# 配置模型LoRA
+logger.info("configure LoRA finetune model")
+# 针对性微调
+# for name,parameter in model.named_parameters(): # 可以使用表达式匹配想微调的层
+#     print(name)
+config = LoraConfig(
+    task_type=TaskType.SEQ_2_SEQ_LM,
+    # modules_to_save=[], # 除了LoRA还想训练原模型的哪部分参数
+)
+model = get_peft_model(model, config)
 
-# bleu = evaluate.load("bleu")
-# def compute_metric(eval_pred):
-#     pred, labels = eval_pred
-#     pred = tokenizer.batch_decode(pred, skip_special_tokens=True)
-#     labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
-#     labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
-#     # 默认为4gram bleu
-#     bleu_score = bleu.compute(predictions=pred, references=labels, tokenizer=tokenizer)
-#     return {"bleu-4": bleu_score}
+model.print_trainable_parameters()
 
+
+# 加载评估函数
 logger.info("get compute_metrics")
 compute_metric = get_compute_metric(tokenizer)
 
 
-# # 训练参数
+# 训练参数
 logger.info("configure trainer")
-beam_config = GenerationConfig(
+beam_config = GenerationConfig(  # FIXME 生成可能有问题，生成太短导致不匹配bleu
     max_new_tokens=2,
     do_sample=True,
     num_beams=3,
@@ -81,9 +89,10 @@ args = Seq2SeqTrainingArguments(
     output_dir="./output",
     learning_rate=2e-5,
     # num_train_epochs=3,
-    per_device_train_batch_size=16,
+    per_device_train_batch_size=4,
     per_device_eval_batch_size=16,
-    gradient_accumulation_steps=2,  # 进行一次更新的梯度累计步数
+    gradient_accumulation_steps=8,  # 进行一次更新的梯度累计步数 BS*GA=32，显示的也是这个
+    gradient_checkpointing=True,
     logging_steps=8,
     eval_strategy="steps",
     eval_steps=512,
@@ -104,3 +113,7 @@ trainer = Seq2SeqTrainer(
 
 logger.info("start training")
 trainer.train()
+
+# from peft import PeftModel
+
+# PeftModel.from_pretrained
