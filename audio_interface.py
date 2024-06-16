@@ -208,7 +208,6 @@ def get_random_audio_file(folder_path, file_extension=".mp3"):
 def speech2text(audio_path='dataset/yue/clips\common_voice_yue_38338687.mp3'):
     with open('api.json') as f:
         api = json.load(f)
-    print(api)
     app_id=api['app_id']
     api_key=api['api_key']
     api_secret =api['api_secret']
