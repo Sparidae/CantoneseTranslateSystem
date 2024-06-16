@@ -1,6 +1,19 @@
 
 ## 粤语翻译系统
 
+### 环境依赖
+python==3.10
+pip/conda安装以下库(我用pip报错，用conda可以):
+    cffi
+    gevent
+    greenlet
+    pycparser
+    six
+    websocket
+    websocket-client
+
+ffmpg：需要从官网(https://ffmpeg.org/)下载后添加到环境变量
+
 
 ## 文件结构
 
@@ -20,7 +33,7 @@
 ```
 
 ## 技术路线
-1. 语音部分 主要实现一个函数，要求提供语音输入，能提取文本输出（调用api）
+1. 语音部分 实现'speech2text'函数，要求提供语音输入，能提取文本输出（调用api：科大讯飞的语音听写https://www.xfyun.cn/services/voicedictation）
 2. 模型部分
     1. LSTM+Attention，带注意力的LSTM
     2. LoRA微调中文预训练t5-base,参数量大概250M
@@ -37,4 +50,13 @@
 
 
 ## 进度
+Sparidae：
+- [ ] LoRA微调中文预训练t5-base
 
+ZZYF:
+- [ ] LSTM+Attention
+
+Wang：
+- [ x ] 语音转文本功能: 调用audio_interface.py中的speech2text函数，传参为音频地址，返回文本字符串。
+- [ ] 前端界面
+- [ ] 前后端接口
