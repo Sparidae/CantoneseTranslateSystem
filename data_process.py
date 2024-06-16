@@ -3,7 +3,7 @@ import logging
 import os
 import os.path as osp
 import shutil
-# from pprint import pp
+from pprint import pp
 
 import datasets
 import opencc
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     data = DataProcess()
     dataset = data.get_dataset()
     print(dataset)
-    # pp(dataset["train"][:2])  # 展示文本数据处理后的结果
+    pp(dataset["train"][:2])  # 展示文本数据处理后的结果
 
     # sens = ["杞人嘅朋友嘆咗一口氣", "泥水佬開門口過得人過得自己"]
     # tokenizer = PreTrainedTokenizerFast(tokenizer_file=TOKENIZER_PATH)
