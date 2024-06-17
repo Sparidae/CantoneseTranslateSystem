@@ -2,15 +2,16 @@
 ## 粤语翻译系统
 
 ### 环境依赖
+
 python==3.10
 pip/conda安装以下库(我用pip报错，用conda可以):
-    cffi
-    gevent
-    greenlet
-    pycparser
-    six
-    websocket
-    websocket-client
+- cffi
+- gevent
+- greenlet
+- pycparser
+- six
+- websocket
+- websocket-client
 
 ffmpg：需要从官网(https://ffmpeg.org/)下载后添加到环境变量
 

@@ -18,6 +18,13 @@ def get_logger(name, level=logging.INFO):
     return logger
 
 
+def get_time_str():
+    import datetime
+
+    time_str = datetime.now().strftime("%b%d_%H-%M-%S")
+    return time_str
+
+
 def count_trainable_parameters(model):
     # 获取所有可训练参数的数量
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

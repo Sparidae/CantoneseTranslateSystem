@@ -21,17 +21,17 @@ def get_compute_metric(tokenizer):
         labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
         # 默认为4gram bleu
         # 使用统一的空格分词评价，使bleu分数具有可比性
-        bleu_2 = bleu.compute(
-            predictions=[" ".join(p) for p in pred],
-            references=[" ".join(p) for p in labels],
-            max_order=4,
-        )
+        # bleu_2 = bleu.compute(
+        #     predictions=[" ".join(p) for p in pred],
+        #     references=[" ".join(p) for p in labels],
+        #     max_order=4,
+        # )
         bleu_4 = bleu.compute(
             predictions=[" ".join(p) for p in pred],
             references=[" ".join(p) for p in labels],
             max_order=4,
         )
-        return {"bleu": bleu_4["bleu"]}
+        return {"bleu-4": bleu_4["bleu"]}
 
     return compute_metrics
 
