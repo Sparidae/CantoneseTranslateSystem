@@ -262,7 +262,7 @@ def train_tokenizer(dataset=None, retrain=False):
 
 def make_dataset(ckpt_i=0):
     # 使用api得到更好的数据集用于训练
-    from interface import translate_yue_to_cn
+    from interface import translate_yue_to_zh
 
     dataset = load_from_disk(DATASET_PATH)
     raw_path = osp.join(NEW_DATASET_PATH, "raw.txt")
@@ -276,7 +276,7 @@ def make_dataset(ckpt_i=0):
                     print(dataset[i])
                     continue
                 line = [dataset[i]["yue"]]
-                line.append(translate_yue_to_cn(dataset[i]["yue"]))
+                line.append(translate_yue_to_zh(dataset[i]["yue"]))
                 f.write("\t".join(line) + "\n")
         except Exception as e:  # noqa: E722
             print(e)

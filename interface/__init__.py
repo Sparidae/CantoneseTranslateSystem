@@ -1,2 +1,2 @@
 from .audio import speech2text
-from .translate import translate_yue_to_cn
+from .translate import translate_yue_to_zh
