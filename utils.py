@@ -19,7 +19,6 @@ def get_logger(name, level=logging.INFO):
 
 
 def get_time_str():
-    import datetime
     from datetime import datetime
 
     time_str = datetime.now().strftime("%b%d_%H-%M-%S")
