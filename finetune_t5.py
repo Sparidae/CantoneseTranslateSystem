@@ -157,4 +157,9 @@ trainer.train()
 4. 做读取模型的接口部分
 
 5. 看LSTM进度问题 继续
+
+主要工作
+1. LSTM+Attention模型实现 参考model/template.py,实现model/lstm_attention.py
+2. 模型训练 train_lstm.py
+3. 模型推理 infer_lstm.py
 """

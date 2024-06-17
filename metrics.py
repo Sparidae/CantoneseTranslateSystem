@@ -36,6 +36,8 @@ def get_compute_metric(tokenizer):
     return compute_metrics
 
 
+#####  下面全部是测试部分  #####
+
 # metrics_list = evaluate.list_evaluation_modules()
 # print("指标的总数: ", len(metrics_list))
 # print("所有的指标: ", metrics_list)
