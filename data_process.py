@@ -329,7 +329,7 @@ if __name__ == "__main__":
 
     # pp(dataset["train"][:2])  # 展示文本数据处理后的结果
 
-    # 清洗数据集测试结果
+    # 清洗数据集测试
     # dataset = load_from_disk(DATASET_PATH)
     # print(len(dataset))
     # dataset = dataset.filter(lambda x: len(x["yue"]) != 0)
@@ -342,15 +342,13 @@ if __name__ == "__main__":
     # print(dataset[80866])
     # print(dataset[127637])
 
-    # 创建raw数据集
-    # make_dataset(127637)
+    # 创建new raw数据集 本步骤需要有至少260w 字符量的api接入，代码实现调用了科大讯飞的文本翻译api
+    # make_dataset()
 
     # 把数据集保存为transformers dataset格式 ，顺带处理空数据
-    trans_new_dataset()
-    # data = Dataset.from_dict({"a": [1, 2, 3], "b": [3, 1, 2]})
-    # print(data)
+    # trans_new_dataset()
 
-    # <unk>消失之谜
+    # <unk>消失之谜 没有消失，大约2k个未登录字，但是不影响训练结果
     # dataset = load_from_disk(DATASET_PATH)
     # tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
     # print(tokenizer.unk_token)

@@ -25,19 +25,23 @@ logger = get_logger("T5 inference")
 
 
 class InferT5:
-    def __init__(self, mode="lora", ft_ckpt=None) -> None:
+    def __init__(
+        self,
+        ft_ckpt,  # 提供checkpoint的路径或者id ，并和提供的mode匹配
+        mode="lora",
+    ) -> None:
         # origin lora
         t5_ckpt = "Langboat/mengzi-t5-base"
         # 加载模型和tokenizer
         if mode == "origin":  # 直接微调
-            ckpt = t5_ckpt
+            ckpt = t5_ckpt  # 换成ft_ckpt
             self.tokenizer = AutoTokenizer.from_pretrained(ckpt)
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 ckpt,
                 low_cpu_mem_usage=True,
             )
         elif mode == "lora":  # lora微调
-            lora_ckpt = "output/t5_lora/Jun17_14-11-08/checkpoint-9216"
+            lora_ckpt = ft_ckpt
             self.tokenizer = AutoTokenizer.from_pretrained(lora_ckpt)
             o_model = AutoModelForSeq2SeqLM.from_pretrained(
                 t5_ckpt,
@@ -54,8 +58,8 @@ class InferT5:
             max_new_tokens=128,  # TODO 匹配数据集的最大长度
             num_beams=3,
             early_stopping=True,
-            bos_token_id=7,
             # no_repeat_ngram_size=2,
+            bos_token_id=7,
             pad_token_id=self.tokenizer.pad_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
         )
@@ -64,7 +68,12 @@ class InferT5:
             do_sample=True,
             temperature=1.0,
             top_k=20,
-            top_p=0.8,
+            top_p=0.7,
+            early_stopping=True,
+            no_repeat_ngram_size=2,
+            bos_token_id=7,
+            pad_token_id=self.tokenizer.pad_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
         )
 
     def translate_yue_to_zh(
@@ -72,7 +81,7 @@ class InferT5:
         text,
         do_sample=False,
     ):
-        # 只翻译一句
+        # 调用微调模型进行翻译
         model_inputs = self.tokenizer(
             text=PREFIX + text,
             padding=True,
@@ -99,10 +108,10 @@ class InferT5:
 
 
 if __name__ == "__main__":
-    infer_t5 = InferT5(mode="lora")
+    infer_t5 = InferT5("output/t5_lora/Jun17_14-11-08/checkpoint-9216", mode="lora")
 
     while True:
         text = input("请输入粤语文本:")
-        trans_text = infer_t5.translate_yue_to_zh(text)
+        trans_text = infer_t5.translate_yue_to_zh(text, do_sample=False)
         print("翻译文本：", trans_text)
         print("-" * 50)
