@@ -64,10 +64,15 @@ logger.info("configure LoRA finetune model")
 #     print(name)
 config = LoraConfig(
     task_type=TaskType.SEQ_2_SEQ_LM,
+    init_lora_weights="pissa",
     # modules_to_save=[], # 除了LoRA还想训练原模型的哪部分参数
 )
 model = get_peft_model(model, config)
 
+
+# lora模型更新参数，大量降低微调参数量
+model.gradient_checkpointing_enable()
+model.enable_input_require_grads()
 model.print_trainable_parameters()
 
 
@@ -81,7 +86,7 @@ compute_metric = get_compute_metric(tokenizer)
 logger.info("configure trainer")
 time_str = get_time_str()
 beam_config = GenerationConfig(  # 束搜索是因为翻译评估需要稳定的输出，采样具有随机性，每次的评估都不一样
-    max_new_tokens=60,  # TODO 匹配数据集的最大长度
+    max_new_tokens=128,  # TODO 匹配数据集的最大长度
     num_beams=3,
     early_stopping=True,
     bos_token_id=7,
@@ -89,26 +94,28 @@ beam_config = GenerationConfig(  # 束搜索是因为翻译评估需要稳定的
     pad_token_id=tokenizer.pad_token_id,
     eos_token_id=tokenizer.eos_token_id,
 )
-top_config = GenerationConfig(
-    max_new_tokens=60,
+top_config = GenerationConfig(  # 可以作为翻译生成策略进行测试
+    max_new_tokens=128,
     do_sample=True,
     top_k=20,
     top_p=0.8,
 )
 args = Seq2SeqTrainingArguments(
-    output_dir=f"./output/runs/{time_str}",
+    output_dir=f"./output/t5_lora/{time_str}",
     learning_rate=2e-5,
     # num_train_epochs=3, # 默认3个
+    # 优化器，调度器
+    # optim="adafactor",
     # 梯度累计和检查点优化策略
-    per_device_train_batch_size=2,
-    gradient_accumulation_steps=16,  # 进行一次更新的梯度累计步数 BS*GA=32，显示的也是这个
+    per_device_train_batch_size=32,
+    gradient_accumulation_steps=1,  # 进行一次更新的梯度累计步数 BS*GA=32，显示的也是这个
     gradient_checkpointing=True,
     # 评估优化
-    per_device_eval_batch_size=4,
-    eval_accumulation_steps=4,
+    per_device_eval_batch_size=16,
+    eval_accumulation_steps=1,
     # 日志
     logging_dir=f"./output/runs/{time_str}",
-    logging_steps=8,
+    logging_steps=32,
     # 评估
     eval_strategy="steps",
     eval_steps=512,  # 512
@@ -142,9 +149,8 @@ trainer.train()
 
 
 """TODO
-1. 未登录词
-2. LoRA微调
-3. 束搜索最大长度
-4. 使用翻译api得到新的数据
+1. 未登录词 
+2. 清洗数据 
+3. 测试lora
 5. 看LSTM进度问题
 """

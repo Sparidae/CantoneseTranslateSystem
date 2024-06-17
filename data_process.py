@@ -25,7 +25,9 @@ from transformers import AutoTokenizer, PreTrainedTokenizerFast
 from utils import get_logger
 
 DATASET_PATH = "./dataset/full"
+NEW_DATASET_PATH = "./dataset/new"
 TOKENIZER_PATH = "./dataset/tokenizer.json"
+PREFIX = "翻译粤语为简体中文:"
 
 os.makedirs(DATASET_PATH, exist_ok=True)
 
@@ -80,9 +82,9 @@ class DataProcess:
             def encode(examples):
                 # tokenizer 接受str或者str列表
                 # batch是数据字典，包括yue的n条数据组成的列表和zh的n条数据组成的列表
-                prefix = "翻译粤语为简体中文:"
+                # prefix = "翻译粤语为简体中文:"
                 batch = tokenizer(
-                    text=[prefix + e for e in examples["yue"]],
+                    text=[PREFIX + e for e in examples["yue"]],
                     text_target=examples["zh"],
                     truncation=True,  # 截断超过最长长度的
                     max_length=128,
@@ -138,14 +140,13 @@ class DataProcess:
             return example
 
         dataset2 = dataset2.map(t2s)
-        # TODO 翻译
-        # 我的想法是单独写一个函数，现在这个数据集组成是yue标签和zh标签的字典，字典里面是数据列表
-        # 这个函数进行翻译，一行一对数据先存放到临时文件，如果翻译到一半用光了（报错就保存断点，换key
-        # 然后恢复执行能继续生成
 
         # 5. 将所有训练语料拼接起来作为一个数据集训练,并为数据集按字为单位添加空格分隔（方便tokenizer分字）
         logger.info("concat all dataset")
         full_dataset = concatenate_datasets([dataset1, dataset2])
+
+        # 6. 数据清洗，去除空字符串
+        full_dataset = full_dataset.filter(lambda x: len(x["yue"]) != 0)
 
         # 保存为文件
         # shutil.rmtree(DATASET_PATH)
@@ -217,30 +218,53 @@ def train_tokenizer(dataset=None, retrain=False):
     return tokenizer
 
 
-def make_dataset():
+def fix_tokenizer():
+    # <unk>消失之谜
+    dataset = load_from_disk(DATASET_PATH)
+    tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
+    unk_dict = {}
+    for example in dataset["yue"]:
+        tokens = tokenizer.tokenize(example)
+        ids = tokenizer.convert_tokens_to_ids(tokens)
+        ids_1 = tokenizer.encode(example)
+
+        for i, idx in enumerate(ids):
+            if idx == tokenizer.unk_token_id:
+                if tokens[i] not in unk_dict:
+                    unk_dict[tokens[i]] = 0
+                unk_dict[tokens[i]] += 1
+
+    print(unk_dict)
+
+    charset = set()
+    for s in list(unk_dict.keys()):
+        charset.update(s)
+    print(charset)
+    print(len(charset))
+
+
+def make_dataset(ckpt_i=0):
     # 使用api得到更好的数据集用于训练
     from interface import translate_yue_to_cn
 
-    NEW_DATASET_PATH = "./dataset/new"
     dataset = load_from_disk(DATASET_PATH)
-    # trans_text = translate_yue_to_cn(
-    #     "啲氣氛真係好好，好掂。誒，煙花，又放煙花喇，但係影出來就唔掂囖，但係喺當場睇都幾開心𡃉。"
-    # )
-    # print(trans_text)
-    ckpt_i = 0
     raw_path = osp.join(NEW_DATASET_PATH, "raw.txt")
     os.makedirs(NEW_DATASET_PATH, exist_ok=True)
     with open(raw_path, "a") as f:
-        for i in tqdm(range(ckpt_i, len(dataset))):
-            # print(dataset[i])
-            line = [dataset[i]["yue"]]
-            try:
+        try:
+            for i in tqdm(range(ckpt_i, len(dataset))):
+                # print(dataset[i])
+                if len(dataset[i]["yue"]) == 0:  # 跳过错误数据
+                    print(f"skip sample{i}")
+                    print(dataset[i])
+                    continue
+                line = [dataset[i]["yue"]]
                 line.append(translate_yue_to_cn(dataset[i]["yue"]))
                 f.write("\t".join(line) + "\n")
-            except Exception as e:  # noqa: E722
-                print(e)
-                print(f"\n异常中断！中断点： {i}")
-                sys.exit(1)
+        except Exception as e:  # noqa: E722
+            print(e)
+            print(f"\n异常中断！中断点： {i}")
+            sys.exit(1)
 
             # time.sleep(1)
 
@@ -248,13 +272,61 @@ def make_dataset():
     return
 
 
+def trans_new_dataset():
+    # 定义数据文件路径
+    from datasets import Dataset
+
+    file_path = "./dataset/new/raw.txt"
+
+    # 读取数据文件
+    data = {"yue": [], "zh": []}
+    with open(file_path, "r", encoding="utf-8") as f:
+        for i, line in enumerate(f):
+            try:
+                yue, zh = line.strip().split("\t")
+                data["yue"].append(yue)
+                data["zh"].append(zh)
+            except ValueError:
+                print(i + 1, line.strip())
+
+    # 将数据转换为 Dataset 对象
+    dataset = Dataset.from_dict(data)
+
+    # 打印一些数据以验证
+    print(dataset)
+
+
 if __name__ == "__main__":
+    pass
     # data = DataProcess()
     # dataset = data.get_dataset()
     # print(dataset)
     # pp(dataset["train"][:2])  # 展示文本数据处理后的结果
+    # dataset = load_from_disk(DATASET_PATH)
+    # print(len(dataset))
+    # dataset = dataset.filter(lambda x: len(x["yue"]) != 0)
+    # print(len(dataset))
 
-    make_dataset()
+    # print(dataset[24976])
+    # print(dataset[68372])
+    # print(dataset[80866])
+    # print(dataset[127637])
+
+    # make_dataset(127637)
+
+    # trans_new_dataset()
+
+    # <unk>消失之谜
+    # dataset = load_from_disk(DATASET_PATH)
+    # tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
+    # print(tokenizer.unk_token)
+    # ids = tokenizer.encode("圂刉媕惏")
+    # tokens = tokenizer.convert_ids_to_tokens(ids)
+    fix_tokenizer()
+
+    # token_ids = tokenizer.convert_tokens_to_ids(tokens)
+    # print(tokens)
+    # print(token_ids)
 
     # sens = ["杞人嘅朋友嘆咗一口氣", "泥水佬開門口過得人過得自己"]
     # tokenizer = PreTrainedTokenizerFast(tokenizer_file=TOKENIZER_PATH)
