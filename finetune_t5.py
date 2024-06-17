@@ -57,18 +57,18 @@ model = AutoModelForSeq2SeqLM.from_pretrained(
 count_trainable_parameters(model)  # 248M参数
 # print(model)
 
-# 配置模型LoRA
-logger.info("configure LoRA finetune model")
-# 针对性微调
-# for name,parameter in model.named_parameters(): # 可以使用表达式匹配想微调的层
-#     print(name)
-config = LoraConfig(
-    task_type=TaskType.SEQ_2_SEQ_LM,
-    # modules_to_save=[], # 除了LoRA还想训练原模型的哪部分参数
-)
-model = get_peft_model(model, config)
+# # 配置模型LoRA
+# logger.info("configure LoRA finetune model")
+# # 针对性微调
+# # for name,parameter in model.named_parameters(): # 可以使用表达式匹配想微调的层
+# #     print(name)
+# config = LoraConfig(
+#     task_type=TaskType.SEQ_2_SEQ_LM,
+#     # modules_to_save=[], # 除了LoRA还想训练原模型的哪部分参数
+# )
+# model = get_peft_model(model, config)
 
-model.print_trainable_parameters()
+# model.print_trainable_parameters()
 
 
 # 加载评估函数
