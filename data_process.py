@@ -3,6 +3,8 @@ import logging
 import os
 import os.path as osp
 import shutil
+import sys
+import time
 from pprint import pp
 
 import datasets
@@ -17,6 +19,7 @@ from tokenizers import (
     processors,
     trainers,
 )
+from tqdm import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from utils import get_logger
@@ -214,11 +217,44 @@ def train_tokenizer(dataset=None, retrain=False):
     return tokenizer
 
 
+def make_dataset():
+    # 使用api得到更好的数据集用于训练
+    from interface import translate_yue_to_cn
+
+    NEW_DATASET_PATH = "./dataset/new"
+    dataset = load_from_disk(DATASET_PATH)
+    # trans_text = translate_yue_to_cn(
+    #     "啲氣氛真係好好，好掂。誒，煙花，又放煙花喇，但係影出來就唔掂囖，但係喺當場睇都幾開心𡃉。"
+    # )
+    # print(trans_text)
+    ckpt_i = 0
+    raw_path = osp.join(NEW_DATASET_PATH, "raw.txt")
+    os.makedirs(NEW_DATASET_PATH, exist_ok=True)
+    with open(raw_path, "a") as f:
+        for i in tqdm(range(ckpt_i, len(dataset))):
+            # print(dataset[i])
+            line = [dataset[i]["yue"]]
+            try:
+                line.append(translate_yue_to_cn(dataset[i]["yue"]))
+                f.write("\t".join(line) + "\n")
+            except Exception as e:  # noqa: E722
+                print(e)
+                print(f"\n异常中断！中断点： {i}")
+                sys.exit(1)
+
+            # time.sleep(1)
+
+    print(len(dataset))
+    return
+
+
 if __name__ == "__main__":
-    data = DataProcess()
-    dataset = data.get_dataset()
-    print(dataset)
-    pp(dataset["train"][:2])  # 展示文本数据处理后的结果
+    # data = DataProcess()
+    # dataset = data.get_dataset()
+    # print(dataset)
+    # pp(dataset["train"][:2])  # 展示文本数据处理后的结果
+
+    make_dataset()
 
     # sens = ["杞人嘅朋友嘆咗一口氣", "泥水佬開門口過得人過得自己"]
     # tokenizer = PreTrainedTokenizerFast(tokenizer_file=TOKENIZER_PATH)
