@@ -11,3 +11,4 @@ output/**
 
 t5_tokenizer/
 api.json
+uploads/
