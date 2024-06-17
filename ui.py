@@ -2,8 +2,8 @@ import gradio as gr
 import os
 from datetime import datetime
 import shutil
-from audio_interface import speech2text
-from translate import translate_yue_to_cn
+from interface.audio import speech2text
+from interface.translate import translate_yue_to_cn
 
 # 保存上传的音频文件到指定目录
 def save_audio_file(file_path):
