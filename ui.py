@@ -65,7 +65,7 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="stone")) as demo:  # slate gray
         mic_input = gr.Audio(sources="microphone", type="filepath", label="用麦克风录音")
     
     # 粤语文本输入接口
-    yue_text_input = gr.Textbox(label="输入粤语文本直接翻译")
+    yue_text_input = gr.Textbox(label="输入粤语文本直接翻译", lines=3)
 
     # 提示信息弹出框
     alert_output = gr.HTML()
@@ -73,10 +73,10 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="stone")) as demo:  # slate gray
 
     # 处理输入的按钮
     process_button = gr.Button("点击翻译",size='lg', variant='primary')
-    
-    # 显示粤语文本和翻译的简体中文文本
-    yue_text_output = gr.Textbox(label="粤语文本", interactive=False)
-    cn_text_output = gr.Textbox(label="翻译结果", interactive=False)
+    with gr.Row():
+        # 显示粤语文本和翻译的简体中文文本
+        yue_text_output = gr.Textbox(label="粤语文本", interactive=False, lines=5)
+        cn_text_output = gr.Textbox(label="翻译结果", interactive=False, lines=5)
     
     # 显示历史记录
     history_output = gr.DataFrame(label="历史记录", headers=["粤语", "简体中文"])
