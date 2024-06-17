@@ -7,7 +7,7 @@ import gradio as gr
 from interface.audio import speech2text
 from interface.translate import translate_yue_to_zh
 
-t5_model = InferT5(mode='lora')
+t5_model = InferT5("output/t5_lora/Jun17_14-11-08/checkpoint-9216", mode='lora')
 
 # 保存上传的音频文件到指定目录
 def save_audio_file(file_path):
@@ -41,6 +41,13 @@ def process_input(audio_file, mic_file, yue_text_input, model, strategy):
     yue_text = ""
     cn_text = ""
 
+    if model==None or strategy==None:
+        return (
+            "",
+            "",
+            history,
+            "<p style='color:red'>请选择模型和生成策略</p>",
+        )
     # 检查输入的数量
     inputs_count = sum(
         [audio_file is not None, mic_file is not None, bool(yue_text_input)]
@@ -103,7 +110,7 @@ with gr.Blocks(
     
     with gr.Row():
         model_name = gr.Dropdown(choices=["t5", "lstm", "讯飞API"], label="选择翻译模型")
-        strategy = gr.Dropdown(choices=["搜索", "采样"], label="选择生成策略")
+        strategy = gr.Dropdown(choices=["无"], label="选择生成策略")
 
     # 更新策略选项
     model_name.change(fn=update_strategy, inputs=model_name, outputs=strategy)
