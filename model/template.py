@@ -13,28 +13,45 @@ class ConfigTemplate(PretrainedConfig):
         # params
         **kwargs,
     ):
-        # 存储
+        # 模型参数类，将参数存储起来传递给模型，
         self.param = param
         super().__init__(**kwargs)
 
 
+class ModelTemplate(PreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+        # TODO 填充这部分，和用torch定义模型没什么区别
+        # lstm层 torch有具体的实现，可以直接找到
+
+    def forward(
+        self,
+        input_ids,  # 输入张量
+        attention_mask,  # 填充部分为0，避免计算
+        labels,  # 目标张量
+    ):
+        # TODO 前馈部分
+        # lstm的话返回最后一层的输出和隐层状态张量
+        return  # output
+
+
 class ModelForTaskTemplate(PreTrainedModel):
     def __init__(self, config):
-        super().__init__(
-            config
-        )  # 模型需要接受 config 参数并且传递给父类，config即上面定义的
-        self.bert = ModelTemplate(config)
-        self.loss_func = nn.CrossEntropyLoss()
-        self.is_pretrain = config.is_pretrain
+        super().__init__(config)
+        self.model = ModelTemplate(config)
+        # TODO 这个模型主要作为包裹Model的部分，实现损失的计算等
+        # 模型需要接受 config 参数并且传递给父类，config即上面定义的
+        self.loss_func = None
 
     def forward(
         self,  # 接收参数需要与数据集的键对应，下列名称基本不能换
         input_ids,  # 输入张量
-        token_type_ids,
-        attention_mask,
+        attention_mask,  # 填充部分为0，避免计算
         labels,  # 目标张量
     ):
         pass
+        # TODO 这部分主要实现lstm一次前馈并计算loss值返回
+
         # 传递给 `Trainer` 的模型必须在模型内部 `.forward()` 计算 loss ，
         # 作为元组第一个元素返回，或者返回包含 `loss` 键的字典
 
@@ -45,31 +62,3 @@ class ModelForTaskTemplate(PreTrainedModel):
         #     "loss": loss,
         #     "y": y,
         # }
-
-
-class ModelTemplate(PreTrainedModel):
-    def __init__(self, config):
-        super().__init__(config)
-        # self.embedding = BertEmbedding(config)
-        # encoder_layer = nn.TransformerEncoderLayer(
-        #     d_model=config.hidden_size,
-        #     nhead=config.num_attention_heads,
-        #     dim_feedforward=config.hidden_size * 4,  # 论文中给出
-        #     dropout=config.hidden_dropout_prob,
-        #     activation=F.gelu,
-        #     batch_first=True,
-        # )
-        # self.bert_encoder = nn.TransformerEncoder(
-        #     encoder_layer,
-        #     num_layers=config.num_hidden_layers,
-        # )
-        # self.mlmfc = nn.Linear(config.hidden_size, config.vocab_size)
-        # self.fc = nn.Linear(config.hidden_size, config.label_vocab_size)
-
-    def forward(self, x, position, padding_mask):
-        # 该部分的forward输入键可以自行组织，作为基础模型结构，不添加任务头之类的，只能用于ForTask内部
-        # batchsize,seqlength
-        # embed = self.embedding(x, position)
-        # encoded = self.bert_encoder(embed, src_key_padding_mask=padding_mask)
-
-        return  # output
