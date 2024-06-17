@@ -139,7 +139,7 @@ class GetResult(object):
                     return respData["data"]["result"]["trans_result"]["dst"]
 
 
-def translate_yue_to_cn(text) -> str:
+def translate_yue_to_zh(text) -> str:
     host = "itrans.xfyun.cn"
     with open("api.json") as f:
         api = json.load(f)
@@ -158,5 +158,5 @@ if __name__ == "__main__":
 
     # 翻译
     text = "啲氣氛真係好好，好掂。誒，煙花，又放煙花喇，但係影出來就唔掂囖，但係喺當場睇都幾開心𡃉。"
-    translated_text = translate_yue_to_cn(text)
+    translated_text = translate_yue_to_zh(text)
     print(translated_text)

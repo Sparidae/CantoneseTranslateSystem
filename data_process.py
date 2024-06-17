@@ -10,7 +10,7 @@ from pprint import pp
 import datasets
 import opencc
 import tokenizers
-from datasets import concatenate_datasets, load_dataset, load_from_disk
+from datasets import Dataset, concatenate_datasets, load_dataset, load_from_disk
 from tokenizers import (
     Tokenizer,
     models,
@@ -36,15 +36,25 @@ logger = get_logger("DataProcess")
 
 
 class DataProcess:
-    def __init__(self, tokenizer=None) -> None:
+    def __init__(
+        self,
+        tokenizer=None,
+        dataset_to_use="full",  # full new
+        reproc_full=False,
+    ) -> None:
         # 提供的tokenizer最好是fast实现
 
         # 1. 加载处理好的全连接的数据集
-        if len(os.listdir(DATASET_PATH)) == 0:
-            self.dataset = self.__preprocess_full_dataset()
+        if dataset_to_use == "full":
+            if len(os.listdir(DATASET_PATH)) == 0 or reproc_full:
+                self.dataset = self.__preprocess_full_dataset()
+            else:
+                logger.info("load full dataset from disk")
+                self.dataset = load_from_disk(DATASET_PATH, keep_in_memory=True)
+        elif dataset_to_use == "new":
+            self.dataset = load_from_disk(NEW_DATASET_PATH, keep_in_memory=True)
         else:
-            logger.info("load full dataset from disk")
-            self.dataset = load_from_disk(DATASET_PATH, keep_in_memory=True)
+            raise
 
         # test 最终可以注释掉的代码部分
         # self.dataset = self.__preprocess_full_dataset()
@@ -146,10 +156,16 @@ class DataProcess:
         full_dataset = concatenate_datasets([dataset1, dataset2])
 
         # 6. 数据清洗，去除空字符串
+        # def filter_func(x):
+        #     if len(x["yue"]) != 0 and len(x["zh"]) != 0:
+        #         return True
+        #     else:
+        #         return False
+
         full_dataset = full_dataset.filter(lambda x: len(x["yue"]) != 0)
 
         # 保存为文件
-        # shutil.rmtree(DATASET_PATH)
+        print("full_dataset length:", len(full_dataset))
         full_dataset.save_to_disk(DATASET_PATH)
         return full_dataset
 
@@ -218,34 +234,35 @@ def train_tokenizer(dataset=None, retrain=False):
     return tokenizer
 
 
-def fix_tokenizer():
-    # <unk>消失之谜
-    dataset = load_from_disk(DATASET_PATH)
-    tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
-    unk_dict = {}
-    for example in dataset["yue"]:
-        tokens = tokenizer.tokenize(example)
-        ids = tokenizer.convert_tokens_to_ids(tokens)
-        ids_1 = tokenizer.encode(example)
+# def fix_tokenizer():
+#     # <unk>消失之谜
+#     # FIXME 清洗数据中的未登录词
+#     dataset = load_from_disk(DATASET_PATH)
+#     tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
+#     unk_dict = {}
+#     for example in dataset["yue"]:
+#         tokens = tokenizer.tokenize(example)
+#         ids = tokenizer.convert_tokens_to_ids(tokens)
+#         ids_1 = tokenizer.encode(example)
 
-        for i, idx in enumerate(ids):
-            if idx == tokenizer.unk_token_id:
-                if tokens[i] not in unk_dict:
-                    unk_dict[tokens[i]] = 0
-                unk_dict[tokens[i]] += 1
+#         for i, idx in enumerate(ids):
+#             if idx == tokenizer.unk_token_id:
+#                 if tokens[i] not in unk_dict:
+#                     unk_dict[tokens[i]] = 0
+#                 unk_dict[tokens[i]] += 1
 
-    print(unk_dict)
+#     print(unk_dict)
 
-    charset = set()
-    for s in list(unk_dict.keys()):
-        charset.update(s)
-    print(charset)
-    print(len(charset))
+#     charset = set()
+#     for s in list(unk_dict.keys()):
+#         charset.update(s)
+#     print(charset)
+#     print(len(charset))
 
 
 def make_dataset(ckpt_i=0):
     # 使用api得到更好的数据集用于训练
-    from interface import translate_yue_to_cn
+    from interface import translate_yue_to_zh
 
     dataset = load_from_disk(DATASET_PATH)
     raw_path = osp.join(NEW_DATASET_PATH, "raw.txt")
@@ -259,7 +276,7 @@ def make_dataset(ckpt_i=0):
                     print(dataset[i])
                     continue
                 line = [dataset[i]["yue"]]
-                line.append(translate_yue_to_cn(dataset[i]["yue"]))
+                line.append(translate_yue_to_zh(dataset[i]["yue"]))
                 f.write("\t".join(line) + "\n")
         except Exception as e:  # noqa: E722
             print(e)
@@ -274,9 +291,10 @@ def make_dataset(ckpt_i=0):
 
 def trans_new_dataset():
     # 定义数据文件路径
-    from datasets import Dataset
 
     file_path = "./dataset/new/raw.txt"
+
+    full_dataset = load_from_disk(DATASET_PATH)
 
     # 读取数据文件
     data = {"yue": [], "zh": []}
@@ -287,24 +305,36 @@ def trans_new_dataset():
                 data["yue"].append(yue)
                 data["zh"].append(zh)
             except ValueError:
-                print(i + 1, line.strip())
+                yue = line.strip().split("\t")[0]
+                data["yue"].append(yue)
+                data["zh"].append(full_dataset[i]["zh"])
+                print(i, line.strip(), full_dataset[i])
 
-    # 将数据转换为 Dataset 对象
+    # 将字典数据转换为 Dataset 对象
     dataset = Dataset.from_dict(data)
 
     # 打印一些数据以验证
     print(dataset)
 
+    # 保存数据
+    dataset.save_to_disk(NEW_DATASET_PATH)
+
 
 if __name__ == "__main__":
     pass
-    # data = DataProcess()
+    # 重新处理数据集（清洗
+    # data = DataProcess(reproc_dataset=True)
     # dataset = data.get_dataset()
     # print(dataset)
+
     # pp(dataset["train"][:2])  # 展示文本数据处理后的结果
+
+    # 清洗数据集测试结果
     # dataset = load_from_disk(DATASET_PATH)
     # print(len(dataset))
     # dataset = dataset.filter(lambda x: len(x["yue"]) != 0)
+    # print(len(dataset))
+    # dataset = dataset.filter(lambda x: len(x["zh"]) != 0)
     # print(len(dataset))
 
     # print(dataset[24976])
@@ -312,9 +342,13 @@ if __name__ == "__main__":
     # print(dataset[80866])
     # print(dataset[127637])
 
+    # 创建raw数据集
     # make_dataset(127637)
 
-    # trans_new_dataset()
+    # 把数据集保存为transformers dataset格式 ，顺带处理空数据
+    trans_new_dataset()
+    # data = Dataset.from_dict({"a": [1, 2, 3], "b": [3, 1, 2]})
+    # print(data)
 
     # <unk>消失之谜
     # dataset = load_from_disk(DATASET_PATH)
@@ -322,7 +356,7 @@ if __name__ == "__main__":
     # print(tokenizer.unk_token)
     # ids = tokenizer.encode("圂刉媕惏")
     # tokens = tokenizer.convert_ids_to_tokens(ids)
-    fix_tokenizer()
+    # fix_tokenizer()
 
     # token_ids = tokenizer.convert_tokens_to_ids(tokens)
     # print(tokens)
