@@ -108,7 +108,7 @@ class InferT5:
 
 
 if __name__ == "__main__":
-    infer_t5 = InferT5("output/t5_lora/Jun17_14-11-08/checkpoint-9216", mode="lora")
+    infer_t5 = InferT5("output/t5_lora_new/Jun17_17-54-40/checkpoint-13312", mode="lora")
 
     while True:
         text = input("请输入粤语文本:")
