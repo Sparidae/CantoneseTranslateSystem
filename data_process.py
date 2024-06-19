@@ -27,7 +27,7 @@ from utils import get_logger
 DATASET_PATH = "./dataset/full"
 NEW_DATASET_PATH = "./dataset/new"
 TOKENIZER_PATH = "./dataset/tokenizer.json"
-PREFIX = "翻译粤语为简体中文:"
+
 
 os.makedirs(DATASET_PATH, exist_ok=True)
 
@@ -40,7 +40,7 @@ class DataProcess:
         self,
         tokenizer=None,
         dataset_to_use="full",  # full new
-        prefix=PREFIX,
+        prefix='',
         reproc_full=False,
     ) -> None:
         # 提供的tokenizer最好是fast实现

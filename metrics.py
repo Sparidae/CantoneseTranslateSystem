@@ -7,12 +7,12 @@ from utils import get_logger
 logger = get_logger("metrics")
 
 # 加载 BLEU 指标
-logger.info("load metrics")
-
-bleu = evaluate.load("bleu")
 
 
 def get_compute_metric(tokenizer):
+    logger.info("load metrics")
+    bleu = evaluate.load("bleu")
+
     def compute_metrics(eval_pred):
         pred, labels = eval_pred
         pred = np.where(pred != -100, pred, tokenizer.pad_token_id)
