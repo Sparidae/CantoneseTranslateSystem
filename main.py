@@ -118,6 +118,7 @@ with gr.Blocks(
     gr.HTML("""<h1 align="center">粤语-简体中文翻译系统</h1>
             <p align="center">支持语音翻译和文本翻译""")
 
+    # gr.Markdown("## 上传语音文件和输入粤语文本")
     with gr.Row():
         model_name = gr.Dropdown(
             choices=["ALL", "t5_3b", "t5", "lstm", "讯飞API"], label="选择: 翻译模型"
@@ -145,8 +146,12 @@ with gr.Blocks(
 
     with gr.Column():
         # 显示粤语文本和翻译的简体中文文本
-        yue_text_output = gr.Textbox(label="粤语文本", interactive=False, lines=2)
-        zh_text_output = gr.Textbox(label="翻译结果", interactive=False, lines=5)
+        yue_text_output = gr.Textbox(
+            label="粤语文本", interactive=False, show_label=False, lines=1
+        )
+        zh_text_output = gr.Textbox(
+            label="翻译结果", interactive=False, show_copy_button=True, lines=5
+        )
 
     # 显示历史记录
     history_output = gr.DataFrame(label="历史记录", headers=["粤语", "简体中文"])
