@@ -5,6 +5,7 @@ import hmac
 import json
 import os
 import random
+import shutil
 import ssl
 import time
 from datetime import datetime
@@ -22,6 +23,11 @@ from pydub import AudioSegment
 STATUS_FIRST_FRAME = 0  # 第一帧的标识
 STATUS_CONTINUE_FRAME = 1  # 中间帧标识
 STATUS_LAST_FRAME = 2  # 最后一帧的标识
+UPLOAD_DIR = "dataset/uploads/"
+
+shutil.rmtree(UPLOAD_DIR)
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
 
 
 class Ws_Param(object):
@@ -186,94 +192,71 @@ class SpeechRecognizer:
         ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
         return self.result_text
 
+    # ----------------------------------------------------------------------
 
-def audio_sample(audio_path):
-    # 读取音频文件
-    audio = AudioSegment.from_file(audio_path)
-    output_file = "dataset/yue/clips/test.wav"
+    def audio_sample(self, audio_path):
+        # 读取音频文件
+        audio = AudioSegment.from_file(audio_path)
+        output_file = os.path.join(UPLOAD_DIR, "processed.wav")
 
-    # 设置采样率和位深度
-    target_sample_rate = 16000
-    target_sample_width = 2  # 16-bit depth
+        # 设置采样率和位深度
+        target_sample_rate = 16000
+        target_sample_width = 2  # 16-bit depth
 
-    # 调整采样率
-    audio = audio.set_frame_rate(target_sample_rate)
+        # 调整采样率
+        audio = audio.set_frame_rate(target_sample_rate)
 
-    # 调整位深度
-    audio = audio.set_sample_width(target_sample_width)
+        # 调整位深度
+        audio = audio.set_sample_width(target_sample_width)
 
-    # 导出为新的音频文件
-    audio.export(output_file, format="wav")
-    return output_file
+        # 导出为新的音频文件
+        audio.export(output_file, format="wav")
 
+        return output_file
 
-def transcribe_audio(video_path):
-    model = whisper.load_model("base")
-    result = model.transcribe(video_path, language="zh")
-    return result["text"]
+    # 使用 soundfile 将 MP3 文件转换为 WAV 文件
+    def convert_mp3_to_wav(self, mp3_path):
+        wav_path = mp3_path.replace(".mp3", ".wav")
 
+        # 使用 soundfile 读取 MP3 文件并写入 WAV 文件
+        data, samplerate = sf.read(mp3_path)
+        sf.write(wav_path, data, samplerate)
 
-# 使用 soundfile 将 MP3 文件转换为 WAV 文件
-def convert_mp3_to_wav(mp3_path):
-    wav_path = mp3_path.replace(".mp3", ".wav")
+        return wav_path
 
-    # 使用 soundfile 读取 MP3 文件并写入 WAV 文件
-    data, samplerate = sf.read(mp3_path)
-    sf.write(wav_path, data, samplerate)
-
-    return wav_path
-
-
-def get_random_audio_file(folder_path, file_extension=".mp3"):
-    """
-    从指定文件夹中随机选择一个音频文件。
-
-    参数:
-    folder_path (str): 文件夹路径。
-    file_extension (str): 音频文件的扩展名，默认是 ".mp3"。
-
-    返回:
-    str: 随机选择的音频文件的路径。
-    """
-    # 获取指定文件夹中所有音频文件的列表
-    audio_files = [
-        file for file in os.listdir(folder_path) if file.endswith(file_extension)
-    ]
-
-    # 随机选择一个音频文件
-    random_audio_file = random.choice(audio_files)
-
-    # 返回完整的文件路径
-    return os.path.join(folder_path, random_audio_file)
+    def speech2text(self, audio_path):
+        # 预处理+转换
+        audio_path = self.convert_mp3_to_wav(audio_path)
+        audio_path = self.audio_sample(audio_path)
+        text = self.recognize(audio_path)
+        return text
 
 
-def speech2text(audio_path="dataset/yue/clips\common_voice_yue_38338687.mp3"):
+def get_speech2text_api():
     with open("api.json") as f:
         api = json.load(f)
     app_id = api["app_id"]
     api_key = api["api_key"]
     api_secret = api["api_secret"]
-    audio_path = convert_mp3_to_wav(audio_path)
-    audio_path = audio_sample(audio_path)
     recognizer = SpeechRecognizer(app_id, api_key, api_secret)
-    text = recognizer.recognize(audio_path)
-    return text
+    return recognizer
 
 
 if __name__ == "__main__":
-    # 设定音频文件夹路径
-    folder_path = "dataset/yue/clips"
+    pass
+    # # 设定音频文件夹路径
+    # folder_path = "dataset/yue/clips"
 
-    # 获取随机选择的音频文件路径
-    random_audio_path = get_random_audio_file(folder_path, file_extension=".mp3")
-    print(random_audio_path)
-    playsound(random_audio_path)
-    audio_path = convert_mp3_to_wav(random_audio_path)
-    audio_path = audio_sample(audio_path)
+    # # 获取随机选择的音频文件路径
+    # random_audio_path = get_random_audio_file(folder_path, file_extension=".mp3")
+    # print(random_audio_path)
+    # playsound(random_audio_path)
+    # audio_path = convert_mp3_to_wav(random_audio_path)
+    # audio_path = audio_sample(audio_path)
 
     # 测试讯飞API
-    text = speech2text(audio_path)
-    print(text)
+    # text = speech2text(audio_path)
+    # print(text)
 
     # 测试transcribe_audio函数
     # text_output = transcribe_audio(audio_path)

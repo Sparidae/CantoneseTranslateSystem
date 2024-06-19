@@ -31,6 +31,7 @@ class InferT5:
         mode="lora",
     ) -> None:
         # origin lora
+        logger.info("load model and tokenizer")
         t5_ckpt = "Langboat/mengzi-t5-base"
         # 加载模型和tokenizer
         if mode == "origin":  # 直接微调
@@ -82,6 +83,7 @@ class InferT5:
         do_sample=False,
     ):
         # 调用微调模型进行翻译
+        logger.info("translate")
         model_inputs = self.tokenizer(
             text=PREFIX + text,
             padding=True,

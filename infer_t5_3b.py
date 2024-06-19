@@ -30,6 +30,7 @@ class InferT53b:
         lora_ckpt,  # 提供checkpoint的路径或者id ，并和提供的mode匹配
     ) -> None:
         # lora
+        logger.info("load model and tokenizer")
         t5_ckpt = "jbochi/madlad400-3b-mt"
         self.tokenizer = T5Tokenizer.from_pretrained(lora_ckpt)
         o_model = T5ForConditionalGeneration.from_pretrained(
@@ -71,6 +72,7 @@ class InferT53b:
         do_sample=False,
     ):
         # 调用微调模型进行翻译
+        logger.info("translate")
         model_inputs = self.tokenizer(
             text=PREFIX + text,
             padding=True,

@@ -1,2 +1,2 @@
-from .audio import speech2text
-from .translate import translate_yue_to_zh
+from .audio import UPLOAD_DIR, get_speech2text_api
+from .translate import get_translate_api
