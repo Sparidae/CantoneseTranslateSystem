@@ -30,24 +30,24 @@ s2t_api = get_speech2text_api()
 def translate_text(yue_text, model_name, strategy):
     results = {}
     result_text = ""
-    if model_name in ["t5", "all"]:
+    if model_name in ["t5", "ALL"]:
         text = t5.translate_yue_to_zh(
             yue_text, do_sample=False if strategy == "搜索" else True
         )
         results["t5"] = f"{text[0]}"
 
-    if model_name in ["t5_3b", "all"]:
+    if model_name in ["t5_3b", "ALL"]:
         text = t5_3b.translate_yue_to_zh(
             yue_text, do_sample=False if strategy == "搜索" else True
         )
         results["t5_3b"] = f"{text[0]}"
 
-    if model_name in ["lstm", "all"]:
+    if model_name in ["lstm", "ALL"]:
         # text = lstm.translate_yue_to_zh(yue_text)
         # results['lstm']= text
         pass
 
-    if model_name in ["讯飞API", "all"]:
+    if model_name in ["讯飞API", "ALL"]:
         text = translate_api.translate_yue_to_zh(yue_text)
         results["讯飞API"] = text
 
@@ -98,7 +98,7 @@ def process_input(audio_file, mic_file, yue_text_input, model, strategy):
 
 def update_strategy(model_name):
     strategies = {
-        "all": ["搜索", "采样"],  # 输出全部模型的结果
+        "ALL": ["搜索", "采样"],  # 输出全部模型的结果
         "t5_3b": ["搜索", "采样"],
         "t5": ["搜索", "采样"],
         "lstm": ["搜索"],
@@ -120,20 +120,22 @@ with gr.Blocks(
 
     with gr.Row():
         model_name = gr.Dropdown(
-            choices=["all", "t5_3b", "t5", "lstm", "讯飞API"], label="选择翻译模型"
+            choices=["ALL", "t5_3b", "t5", "lstm", "讯飞API"], label="选择: 翻译模型"
         )
-        strategy = gr.Dropdown(choices=["无"], label="选择生成策略")
+        strategy = gr.Dropdown(choices=["无"], label="选择: 生成策略")
         model_name.change(fn=update_strategy, inputs=model_name, outputs=strategy)
 
     # gr.Markdown("## 上传语音文件和输入粤语文本")
     with gr.Row():
-        audio_input = gr.Audio(sources="upload", type="filepath", label="上传语音文件")
+        audio_input = gr.Audio(
+            sources="upload", type="filepath", label="输入: 上传语音文件"
+        )
         mic_input = gr.Audio(
-            sources="microphone", type="filepath", label="用麦克风录音"
+            sources="microphone", type="filepath", label="输入: 用麦克风录音"
         )
 
     # 粤语文本输入接口
-    yue_text_input = gr.Textbox(label="输入粤语文本直接翻译", lines=2)
+    yue_text_input = gr.Textbox(label="输入: 粤语文本", lines=2)
 
     # 提示信息弹出框
     alert_output = gr.HTML()
