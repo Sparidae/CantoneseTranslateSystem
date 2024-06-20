@@ -40,7 +40,7 @@ class DataProcess:
         self,
         tokenizer=None,
         dataset_to_use="full",  # full new
-        prefix='',
+        prefix="",
         reproc_full=False,
     ) -> None:
         # 提供的tokenizer最好是fast实现
@@ -324,9 +324,19 @@ def trans_new_dataset():
 if __name__ == "__main__":
     pass
     # 重新处理数据集（清洗
-    # data = DataProcess(reproc_dataset=True)
-    # dataset = data.get_dataset()
-    # print(dataset)
+    data = DataProcess()
+    dataset = data.get_dataset()
+    print(dataset)
+    print(dataset["train"][:10]["input_ids"].shape)
+
+    from torch.utils.data import DataLoader
+
+    dataloader = DataLoader(dataset["train"], batch_size=32)
+
+    for batch in dataloader:
+        print(batch["input_ids"].shape)
+        print(batch["labels"].shape)
+        break
 
     # pp(dataset["train"][:2])  # 展示文本数据处理后的结果
 

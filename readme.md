@@ -4,7 +4,7 @@
 ### 环境依赖
 
 python==3.10
-pip/conda安装以下库(我用pip报错，用conda可以):
+pip/conda
 - cffi
 - gevent
 - greenlet
