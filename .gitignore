@@ -10,5 +10,10 @@ output/**
 !output/.gitkeep
 
 t5_tokenizer/
-api.json
+madlad300/
+
 uploads/
+
+api.json
+
+.cache/

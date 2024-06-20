@@ -6,13 +6,6 @@ import json
 
 import requests
 
-# from interface.audio import (
-#     audio_sample,
-#     convert_mp3_to_wav,
-#     get_random_audio_file,
-#     speech2text,
-# )
-
 
 class GetResult(object):
     def __init__(self, host, app_id, api_key, api_secret):
@@ -138,8 +131,13 @@ class GetResult(object):
                 else:
                     return respData["data"]["result"]["trans_result"]["dst"]
 
+    # --------------------------------------------------------------------------------
 
-def translate_yue_to_zh(text) -> str:
+    def translate_yue_to_zh(self, text):
+        return self.call_url(text)
+
+
+def get_translate_api():
     host = "itrans.xfyun.cn"
     with open("api.json") as f:
         api = json.load(f)
@@ -148,15 +146,15 @@ def translate_yue_to_zh(text) -> str:
     api_secret = api["api_secret2"]
 
     translator = GetResult(host, app_id, api_key, api_secret)
-    translated_text = translator.call_url(text)
-    return translated_text
+    return translator
 
 
 if __name__ == "__main__":
+    pass
     # 设定音频文件夹路径
-    folder_path = "dataset/yue/clips"
+    # folder_path = "dataset/yue/clips"
 
-    # 翻译
-    text = "啲氣氛真係好好，好掂。誒，煙花，又放煙花喇，但係影出來就唔掂囖，但係喺當場睇都幾開心𡃉。"
-    translated_text = translate_yue_to_zh(text)
-    print(translated_text)
+    # # 翻译
+    # text = "啲氣氛真係好好，好掂。誒，煙花，又放煙花喇，但係影出來就唔掂囖，但係喺當場睇都幾開心𡃉。"
+    # translated_text = translate_yue_to_zh(text)
+    # print(translated_text)

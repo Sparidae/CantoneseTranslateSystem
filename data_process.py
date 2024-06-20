@@ -27,7 +27,7 @@ from utils import get_logger
 DATASET_PATH = "./dataset/full"
 NEW_DATASET_PATH = "./dataset/new"
 TOKENIZER_PATH = "./dataset/tokenizer.json"
-PREFIX = "翻译粤语为简体中文:"
+
 
 os.makedirs(DATASET_PATH, exist_ok=True)
 
@@ -40,6 +40,7 @@ class DataProcess:
         self,
         tokenizer=None,
         dataset_to_use="full",  # full new
+        prefix='',
         reproc_full=False,
     ) -> None:
         # 提供的tokenizer最好是fast实现
@@ -94,7 +95,7 @@ class DataProcess:
                 # batch是数据字典，包括yue的n条数据组成的列表和zh的n条数据组成的列表
                 # prefix = "翻译粤语为简体中文:"
                 batch = tokenizer(
-                    text=[PREFIX + e for e in examples["yue"]],
+                    text=[prefix + e for e in examples["yue"]],
                     text_target=examples["zh"],
                     truncation=True,  # 截断超过最长长度的
                     max_length=128,

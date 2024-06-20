@@ -1,5 +1,4 @@
-# 训练流程
-import datetime
+# 调用来自google的预训练模型google/madlad400-3b-mt
 from pprint import pp
 
 import torch
@@ -12,67 +11,46 @@ from transformers import (
     GenerationConfig,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
+    T5ForConditionalGeneration,
+    T5Tokenizer,
     set_seed,
 )
 
 from data_process import DataProcess
 from metrics import get_compute_metric
-from model import ConfigTemplate
 from utils import count_trainable_parameters, get_logger, get_time_str
 
-PREFIX = "翻译粤语为简体中文:"
+PREFIX = "<2zh> "
 
-logger = get_logger("FineTune_Mengzi-T5")
+logger = get_logger("FineTune_madlad400-3b-mt")
 set_seed(42)
 
 
 if __name__ == "__main__":
-    # 加载预训练的tokenizer
-    logger.info("load t5 pretrained tokenizer")
-    tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
-    # tokenizer.save_pretrained("t5_tokenizer")
+    # 加载tokenizer
+    tokenizer = T5Tokenizer.from_pretrained("jbochi/madlad400-3b-mt")
 
-    # 测试tokenizer是否能正常使用
-    # result = tokenizer(["杞人的朋友叹了一口气", "泥水佬开门口过得人过得自己"])
-    # print(result)
-
-    # 使用tokenizer处理数据
+    # 加载数据
     logger.info("process data")
     data = DataProcess(tokenizer, dataset_to_use="new", prefix=PREFIX)
     dataset = data.get_dataset(8192)
 
-    # FIXME 解决粤语未登录词的问题
-    ## TEST
-    print(dataset)
-    # pp(dataset["train"][:2])
-
-    # result = tokenizer.batch_decode(dataset["train"][4:8]["input_ids"])
-    # pp(result)
-    # result = tokenizer.batch_decode(dataset["train"][4:8]["labels"])
-    # pp(result)
-
-    # 加载模型
-    logger.info("load t5 pretrained model")
-    model = AutoModelForSeq2SeqLM.from_pretrained(
-        "Langboat/mengzi-t5-base",
+    # LoRA配置 + 半精度模型（bf16
+    model = T5ForConditionalGeneration.from_pretrained(
+        "jbochi/madlad400-3b-mt",
         low_cpu_mem_usage=True,
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
     )
-    count_trainable_parameters(model)  # 248M参数
-    # print(model)
-
-    # 配置模型LoRA
-    logger.info("configure LoRA finetune model")
-    # 针对性微调
-    # for name,parameter in model.named_parameters(): # 可以使用表达式匹配想微调的层
-    #     print(name)
     config = LoraConfig(
         task_type=TaskType.SEQ_2_SEQ_LM,
         init_lora_weights="pissa",
         # modules_to_save=[], # 除了LoRA还想训练原模型的哪部分参数
     )
     model = get_peft_model(model, config)
+    model.bfloat16()
 
-    # lora模型更新参数，大量降低微调参数量
+    # 配置
     model.gradient_checkpointing_enable()
     model.enable_input_require_grads()
     model.print_trainable_parameters()
@@ -81,40 +59,34 @@ if __name__ == "__main__":
     logger.info("get compute_metrics")
     compute_metric = get_compute_metric(tokenizer)
 
-    # 训练参数
-    # 训练参数
+    # # 训练参数
     logger.info("configure trainer")
     time_str = get_time_str()
-    model_name = "t5_lora_new"
+    model_name = "t5_madlad400_3b_new"
 
+    # 配置参数
     beam_config = GenerationConfig(  # 束搜索是因为翻译评估需要稳定的输出，采样具有随机性，每次的评估都不一样
         max_new_tokens=128,  # TODO 匹配数据集的最大长度
         num_beams=3,
         early_stopping=True,
-        bos_token_id=7,
+        # bos_token_id=7,
         # no_repeat_ngram_size=2,
         pad_token_id=tokenizer.pad_token_id,
         eos_token_id=tokenizer.eos_token_id,
-    )
-    top_config = GenerationConfig(  # 可以作为翻译生成策略进行测试
-        max_new_tokens=128,
-        do_sample=True,
-        top_k=20,
-        top_p=0.8,
     )
     args = Seq2SeqTrainingArguments(
         output_dir=f"./output/{model_name}/{time_str}",
         learning_rate=2e-5,
         # num_train_epochs=3, # 默认3个
         # 优化器，调度器
-        # optim="adafactor",
+        optim="adafactor",
         # 梯度累计和检查点优化策略
-        per_device_train_batch_size=32,
-        gradient_accumulation_steps=1,  # 进行一次更新的梯度累计步数 BS*GA=32，显示的也是这个
+        per_device_train_batch_size=16,
+        gradient_accumulation_steps=2,  # 进行一次更新的梯度累计步数 BS*GA=32，显示的也是这个
         gradient_checkpointing=True,
         # 评估优化
         per_device_eval_batch_size=16,
-        eval_accumulation_steps=1,
+        # eval_accumulation_steps=1,
         # 日志
         logging_dir=f"./output/{model_name}/{time_str}",
         logging_steps=32,
@@ -145,12 +117,9 @@ if __name__ == "__main__":
     trainer.train()
 
 
-"""TODO
+# # 调用示例
+# text = "<2zh> I love pizza!"
+# input_ids = tokenizer(text, return_tensors="pt").input_ids.to(model.device)
+# outputs = model.generate(input_ids=input_ids)
 
-5. 看LSTM进度问题 继续
-
-主要工作
-1. LSTM+Attention模型实现 参考model/template.py,实现model/lstm_attention.py
-2. 模型训练 train_lstm.py
-3. 模型推理 infer_lstm.py
-"""
+# print(tokenizer.decode(outputs[0], skip_special_tokens=True))
