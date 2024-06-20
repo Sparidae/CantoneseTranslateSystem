@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     # 加载数据
     logger.info("process data")
-    data = DataProcess(tokenizer, dataset_to_use="new", prefix=PREFIX)
+    data = DataProcess(tokenizer, dataset_to_use="full", prefix=PREFIX)
     dataset = data.get_dataset(8192)
 
     # LoRA配置 + 半精度模型（bf16
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # # 训练参数
     logger.info("configure trainer")
     time_str = get_time_str()
-    model_name = "t5_madlad400_3b_new"
+    model_name = "t5_madlad400_3b_full"
 
     # 配置参数
     beam_config = GenerationConfig(  # 束搜索是因为翻译评估需要稳定的输出，采样具有随机性，每次的评估都不一样
