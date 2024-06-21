@@ -13,11 +13,11 @@ logger = get_logger("Main")
 
 # 加载
 logger.info("loading t5 checkpoint")
-t5 = InferT5("output/t5_lora/Jun17_14-11-08/checkpoint-9216", mode="lora")
+t5 = InferT5("output/t5_lora_full/Jun17_14-11-08/checkpoint-9216", mode="lora")
 
 logger.info("loading t5_3b checkpoint")
 # t5_3b = None
-t5_3b = InferT53b("output/t5_madlad400_3b_new/Jun18_23-16-17/checkpoint-11264")
+t5_3b = InferT53b("output/t5_madlad400_3b_full/Jun20_00-11-14/checkpoint-11776")
 
 logger.info("loading lstm checkpoint")
 lstm = None
@@ -52,7 +52,7 @@ def translate_text(yue_text, model_name, strategy):
         results["讯飞API"] = text
 
     for k, v in results.items():
-        result_text += f"{k:<6}: {v}\n"
+        result_text += f"{k:<10}: {v}\n"
     return result_text
 
 

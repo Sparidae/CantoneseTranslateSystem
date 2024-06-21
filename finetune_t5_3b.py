@@ -20,7 +20,7 @@ from data_process import DataProcess
 from metrics import get_compute_metric
 from utils import count_trainable_parameters, get_logger, get_time_str
 
-PREFIX = "<2zh> "
+PREFIX_3B = "<2zh> "
 
 logger = get_logger("FineTune_madlad400-3b-mt")
 set_seed(42)
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     # 加载数据
     logger.info("process data")
-    data = DataProcess(tokenizer, dataset_to_use="full", prefix=PREFIX)
+    data = DataProcess(tokenizer, dataset_to_use="full", prefix=PREFIX_3B)
     dataset = data.get_dataset(8192)
 
     # LoRA配置 + 半精度模型（bf16

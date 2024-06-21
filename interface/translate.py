@@ -103,6 +103,8 @@ class GetResult(object):
         return body
 
     def call_url(self, text):
+        curTime_utc = datetime.datetime.utcnow()
+        self.Date = self.httpdate(curTime_utc)
         if self.APPID == "" or self.APIKey == "" or self.Secret == "":
             print("Appid 或APIKey 或APISecret 为空！请打开demo代码，填写相关信息。")
         else:

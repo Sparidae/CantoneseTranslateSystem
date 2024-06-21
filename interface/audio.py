@@ -173,6 +173,7 @@ class SpeechRecognizer:
         thread.start_new_thread(run, ())
 
     def recognize(self, audio_path):
+        self.result_text = ""
         global wsParam
         wsParam = Ws_Param(
             APPID=self.app_id,
