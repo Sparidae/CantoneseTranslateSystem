@@ -173,6 +173,7 @@ class SpeechRecognizer:
         thread.start_new_thread(run, ())
 
     def recognize(self, audio_path):
+        self.result_text = ""
         global wsParam
         wsParam = Ws_Param(
             APPID=self.app_id,
@@ -235,9 +236,9 @@ class SpeechRecognizer:
 def get_speech2text_api():
     with open("api.json") as f:
         api = json.load(f)
-    app_id = api["app_id"]
-    api_key = api["api_key"]
-    api_secret = api["api_secret"]
+    app_id = api["voice_app_id"]
+    api_key = api["voice_api_key"]
+    api_secret = api["voice_api_secret"]
     recognizer = SpeechRecognizer(app_id, api_key, api_secret)
     return recognizer
 

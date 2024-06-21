@@ -17,7 +17,7 @@ from transformers import (
     T5Tokenizer,
 )
 
-from finetune_t5_3b import PREFIX
+from finetune_t5_3b import PREFIX_3B
 from utils import count_trainable_parameters, get_logger
 
 logger = get_logger("Madlad400 3b T5 inference")
@@ -56,9 +56,9 @@ class InferT53b:
         self.sample_config = GenerationConfig(  # 可以作为翻译生成策略进行测试
             max_new_tokens=128,
             do_sample=True,
-            temperature=1.0,
-            top_k=20,
-            top_p=0.7,
+            temperature=1.0,  # 温度必须是一个字面小数
+            top_k=80,
+            top_p=0.8,
             early_stopping=True,
             no_repeat_ngram_size=2,
             # bos_token_id=7,
@@ -73,8 +73,14 @@ class InferT53b:
     ):
         # 调用微调模型进行翻译
         logger.info("translate")
+        if isinstance(text, list):
+            for i, t in enumerate(text):
+                text[i] = PREFIX_3B + t
+        else:
+            text = PREFIX_3B + text
+
         model_inputs = self.tokenizer(
-            text=PREFIX + text,
+            text=text,
             padding=True,
             return_tensors="pt",
         )

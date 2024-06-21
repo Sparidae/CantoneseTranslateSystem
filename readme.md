@@ -1,72 +1,104 @@
 
-## 粤语翻译系统
+# 粤语翻译系统
 
-### 环境依赖
+## 环境依赖
 
-python==3.10
-pip/conda
-- cffi
-- gevent
-- greenlet
-- pycparser
-- six
-- websocket
-- websocket-client
+环境配置
 
-ffmpg：需要从官网(https://ffmpeg.org/)下载后添加到环境变量
+```bash
+conda create -n translate python=3.10
+conda activate translate
+pip install -r requirements.txt
+```
 
-### 快速上手
+ffmpeg
 
-语音转文本需要用到科大讯飞提供的api，在官网(https://www.xfyun.cn/)中找到 语音识别->语音听写，创建一个应用，在应用的服务接口认证信息中有APPID，APISecret，APIKey。
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
 
-在主目录下创建api.json,内容为：
-
+主目录下创建api.json，按照以下模板配置api
+```json
 {
-    "app_id":"你的appid",
+    "voice_app_id":"...",
+    "voice_api_key":"...",
+    "voice_api_secret":"...",
 
-    "api_key":"你的apikey",
-
-    "api_secret":"你的apisecret"
-
+    "translate_app_id": "...",
+    "translate_api_key": "...",
+    "translate_api_secret": "..."
 }
+```
+
+
+语音转文本需要用到科大讯飞提供的api，在官网[科大讯飞](https://www.xfyun.cn/)查看教程
+
 
 ## 文件结构
 
 
 ```text
 .
-├── audio_interface.py  # 音频接口，实现读取语音输出文本等函数
-├── dataset             # 数据集文件夹，存放语料
-├── main.py             # 程序主要入口，实现前端到输入模型到返回语音的全部功能
-├── model               # 模型包，为每个不同的模型定义一个文件
-│   └── __init__.py
-├── readme.md           
-├── train.py            # 负责模型的训练和评估
-├── ui                  # 负责前端界面的实现，可更改结构
-│   └── ui.py
-└── utils.py            # 存储工具函数
+├── dataset                     # 数据集，经过dataprocess处理后可以得到full数据集
+│   ├── full
+│   ├── new                     # new为接入api自行翻译数据集，质量较差，不提供
+│   ├── tokenizer.json
+│   └── uploads
+├── interface                   # 接口包，主要包含语音转文字接口和翻译接口
+│   ├── __init__.py
+│   ├── audio.py                # 粤语语音转文字api
+│   └── translate.py            # 翻译api
+├── model                       # 自定义模型模板包
+│   ├── __init__.py
+│   └── template.py
+├── output                      # 输出文件夹，包含 模型_数据集 的checkpoints
+│   ├── human_eval.json         # 人类评估暂存json文件
+│   ├── t5_lora_full
+│   ├── t5_lora_new
+│   ├── t5_madlad400_3b_full
+│   └── t5_madlad400_3b_new
+├── api.json                    # 存放api信息，自行创建
+├── data_process.py             # 处理数据集
+├── finetune_t5.py              # 微调mengzi-t5 
+├── finetune_t5_3b.py           # 微调madlad400-3b-mt
+├── human_evaluate.py           # 简单的人类测试评估脚本
+├── infer_t5.py                 # mengzi-t5 模型推理接口
+├── infer_t5_3b.py              # madlad400-3b-mt 模型推理接口
+├── main.py                     # ⭐系统从这里运行，主要包含UI和对各种接口的调用
+├── metrics.py                  # 评价指标函数
+├── readme.md                   
+├── requirements.txt            # 环境依赖
+└── utils.py                    # 工具函数
 ```
 
-## 技术路线
-1. 语音部分 实现'speech2text'函数，要求提供语音输入，能提取文本输出（调用api：科大讯飞的语音听写https://www.xfyun.cn/services/voicedictation）
-2. 模型部分
-    1. LSTM+Attention，带注意力的LSTM
 
-    2. LoRA微调中文预训练t5-base,参数量大概250M
+## 运行说明
 
-    3. （可选）LoRA微调google/madlad400-3b模型，该模型也是基于T5结构，但是规模大，且在madlad400数据集上进行了预训练。
+完全执行
 
-3. UI部分，采用transformers的Gradio库实现，提供输入（音频，文本）和输出（文本）的简单界面
+1. 先运行`data_process.py`来生成full数据集，数据集会存储在`dataset/full/`文件夹下
+2. 然后使用`finetune_[model].py`来微调模型，得到checkpoints，存储在`output/[checkpoint]/[time]/checkpoint_[steps]/`
+3. 将对应`infer_[model].py`中的ckpt路径修改为2.得到的路径来进行推理测试
+4. 得到所有的ckpt，正确填入`main.py`来执行UI界面程序。
 
+如果是完整的仓库，只需要执行第4步即可
 
-## 进度
-Sparidae：
-- [ ] LoRA微调中文预训练t5-base
+注意：第一次执行需要下载预训练模型，需要占用约10G存储，且下载时间较长
 
-ZZYF:
-- [ ] LSTM+Attention
+## 额外说明
 
-Wang：
-- [x] 语音转文本功能: 调用audio_interface.py中的speech2text函数，传参为音频地址，返回文本字符串。
-- [x] 前端界面
-- [ ] 前后端接口
+在`human_evaluate.py`中,实现了对多模型的翻译质量的简单个人评估。
+
+可以提供一些句子，并对所有的模型进行翻译质量的评估，最终可以得到所有模型的翻译分数，高于1 则认为是高于翻译平均水平，低于一则是水平较差，满分为2 
+
+根据项目几位人员测试，得到的平均分数如下
+
+|模型_数据集|人类评分|
+|---|---|
+|t5_full |0.64|
+|t5_new |0.5|
+|t5_3b_full| 1.29|
+|t5_3b_new|1.10|
+|api|1.16|
+

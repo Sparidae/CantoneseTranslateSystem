@@ -171,9 +171,10 @@ class DataProcess:
         return full_dataset
 
 
+# 针对自定义模型训练tokenizer
 def train_tokenizer(dataset=None, retrain=False):
     # 在自己的数据集上 训练得到tokenizer 的函数
-    # 这部分属于 LSTM 方法，也可以直接用bert的tokenizer，当前的tokenizer实现不是很完善
+    # 这部分属于 LSTM 方法，也可以直接用bert的tokenizer
 
     # 如果需要再训练或者不存在缓存的tokenizer，在这个条件下需要dataset存在
     if (retrain or not osp.exists(TOKENIZER_PATH)) and dataset is not None:
@@ -235,32 +236,7 @@ def train_tokenizer(dataset=None, retrain=False):
     return tokenizer
 
 
-# def fix_tokenizer():
-#     # <unk>消失之谜
-#     # FIXME 清洗数据中的未登录词
-#     dataset = load_from_disk(DATASET_PATH)
-#     tokenizer = AutoTokenizer.from_pretrained("Langboat/mengzi-t5-base")
-#     unk_dict = {}
-#     for example in dataset["yue"]:
-#         tokens = tokenizer.tokenize(example)
-#         ids = tokenizer.convert_tokens_to_ids(tokens)
-#         ids_1 = tokenizer.encode(example)
-
-#         for i, idx in enumerate(ids):
-#             if idx == tokenizer.unk_token_id:
-#                 if tokens[i] not in unk_dict:
-#                     unk_dict[tokens[i]] = 0
-#                 unk_dict[tokens[i]] += 1
-
-#     print(unk_dict)
-
-#     charset = set()
-#     for s in list(unk_dict.keys()):
-#         charset.update(s)
-#     print(charset)
-#     print(len(charset))
-
-
+# 处理new数据集
 def make_dataset(ckpt_i=0):
     # 使用api得到更好的数据集用于训练
     from interface import translate_yue_to_zh
@@ -290,6 +266,7 @@ def make_dataset(ckpt_i=0):
     return
 
 
+# 转换为transformers数据集并保存
 def trans_new_dataset():
     # 定义数据文件路径
 
@@ -324,19 +301,27 @@ def trans_new_dataset():
 if __name__ == "__main__":
     pass
     # 重新处理数据集（清洗
-    data = DataProcess()
+    data = DataProcess(
+        tokenizer=None,  # 处理数据需要的，不提供则自行训练
+        dataset_to_use="full",  # full new
+        prefix="",  # 前缀，t5等模型预处理需要为输入添加前缀
+        reproc_full=True,  # 在有数据的情况下重新处理full数据集
+    )
     dataset = data.get_dataset()
-    print(dataset)
-    print(dataset["train"][:10]["input_ids"].shape)
+    # print(dataset)
+    # print(dataset["train"][:10]["input_ids"].shape)
 
-    from torch.utils.data import DataLoader
+    # ---------------------------------------------------------
+    # 以下是测试用代码
 
-    dataloader = DataLoader(dataset["train"], batch_size=32)
+    # from torch.utils.data import DataLoader
 
-    for batch in dataloader:
-        print(batch["input_ids"].shape)
-        print(batch["labels"].shape)
-        break
+    # dataloader = DataLoader(dataset["train"], batch_size=32)
+
+    # for batch in dataloader:
+    #     print(batch["input_ids"].shape)
+    #     print(batch["labels"].shape)
+    #     break
 
     # pp(dataset["train"][:2])  # 展示文本数据处理后的结果
 

@@ -84,8 +84,14 @@ class InferT5:
     ):
         # 调用微调模型进行翻译
         logger.info("translate")
+        if isinstance(text, list):
+            for i, t in enumerate(text):
+                text[i] = PREFIX + t
+        else:
+            text = PREFIX + text
+
         model_inputs = self.tokenizer(
-            text=PREFIX + text,
+            text=text,
             padding=True,
             return_tensors="pt",
         )

@@ -103,6 +103,8 @@ class GetResult(object):
         return body
 
     def call_url(self, text):
+        curTime_utc = datetime.datetime.utcnow()
+        self.Date = self.httpdate(curTime_utc)
         if self.APPID == "" or self.APIKey == "" or self.Secret == "":
             print("Appid 或APIKey 或APISecret 为空！请打开demo代码，填写相关信息。")
         else:
@@ -141,9 +143,9 @@ def get_translate_api():
     host = "itrans.xfyun.cn"
     with open("api.json") as f:
         api = json.load(f)
-    app_id = api["app_id2"]
-    api_key = api["api_key2"]
-    api_secret = api["api_secret2"]
+    app_id = api["translate_app_id"]
+    api_key = api["translate_api_key"]
+    api_secret = api["translate_api_secret"]
 
     translator = GetResult(host, app_id, api_key, api_secret)
     return translator
