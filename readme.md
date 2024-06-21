@@ -1,34 +1,39 @@
 
-## 粤语翻译系统
+# 粤语翻译系统
 
-### 环境依赖
+## 环境依赖
 
-python==3.10
-pip/conda
-- cffi
-- gevent
-- greenlet
-- pycparser
-- six
-- websocket
-- websocket-client
+环境配置
 
-ffmpg：需要从官网(https://ffmpeg.org/)下载后添加到环境变量
+```bash
+conda create -n exp python=3.10
+pip install requirements.txt
+```
 
-### 快速上手
+ffmpeg
 
-语音转文本需要用到科大讯飞提供的api，在官网(https://www.xfyun.cn/)中找到 语音识别->语音听写，创建一个应用，在应用的服务接口认证信息中有APPID，APISecret，APIKey。
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
 
-在主目录下创建api.json,内容为：
-
+主目录下创建api.json，按照以下模板配置api
+```json
 {
-    "app_id":"你的appid",
+    "voice_app_id":"...",
+    "voice_api_key":"...",
+    "voice_api_secret":"...",
 
-    "api_key":"你的apikey",
-
-    "api_secret":"你的apisecret"
-
+    "translate_app_id": "...",
+    "translate_api_key": "...",
+    "translate_api_secret": "..."
 }
+```
+
+
+语音转文本需要用到科大讯飞提供的api，在官网[科大讯飞](https://www.xfyun.cn/)查看教程
+
+
 
 ## 文件结构
 

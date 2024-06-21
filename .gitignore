@@ -1,19 +1,16 @@
-.vscode/
 **/__pycache__/
+
+.cache/
+.vscode/
 
 dataset/**
 !dataset/.gitkeep
 
-finetune*.ipynb
-
 output/** 
 !output/.gitkeep
 
-t5_tokenizer/
-madlad300/
-
-uploads/
+flagged/
 
 api.json
 
-.cache/
+*.ipynb
